@@ -80,7 +80,12 @@ def play_execution(execution):
     return records
 
 
-def play_scenario(scenario):
+def tag_records(records, tag):
+    for r in records:
+        r['tag'] = tag
+
+
+def play_scenario(scenario, tag):
     records = {}
 
     if 'preparation' in scenario:
@@ -90,5 +95,6 @@ def play_scenario(scenario):
         execution = scenario['execution']
 
         records = play_execution(execution)
+        tag_records(records, tag)
 
     return records

@@ -35,6 +35,7 @@ class Endpoint(types.String):
         return "Endpoint host[:port]"
 
 
+
 MAIN_OPTS = [
     cfg.StrOpt('scenario',
                default=utils.env('PERFORMA_SCENARIO'),
@@ -60,6 +61,9 @@ MAIN_OPTS = [
                default=utils.env('PERFORMA_BOOK'),
                help='Generate report in ReST format and store it into the '
                     'specified folder, defaults to env[PERFORMA_BOOK]. '),
+    cfg.StrOpt('tag',
+               default=utils.env('PERFORMA_TAG'),
+               help='Tag the execution, defaults to env[PERFORMA_TAG].'),
 ]
 
 

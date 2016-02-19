@@ -32,11 +32,14 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def generate_chart(chart_str, records_collection, doc_folder):
+def generate_chart(chart_str, records_collection, doc_folder, tag):
     chart = yaml.safe_load(chart_str)
     pipeline = chart.get('pipeline')
     title = chart.get('title')
     axes = chart.get('axes') or dict(x='x', y='y')
+
+    if tag:
+        pipeline.insert(0, {'$match': {'tag': tag}})
 
     chart_data = records_collection.aggregate(pipeline)
 
@@ -81,7 +84,8 @@ def _make_dir(name):
             raise
 
 
-def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder):
+def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
+                    tag=None):
     LOG.info('Generate report')
 
     doc_folder = doc_folder or tempfile.mkdtemp(prefix='performa')
@@ -101,7 +105,8 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder):
     jinja_env.filters['chart'] = functools.partial(
         generate_chart,
         records_collection=records_collection,
-        doc_folder=doc_folder)
+        doc_folder=doc_folder,
+        tag=tag)
 
     template = utils.read_file(report_template, base_dir=base_dir)
     compiled_template = jinja_env.from_string(template)

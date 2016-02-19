@@ -37,12 +37,17 @@ def main():
     scenario = utils.read_yaml_file(scenario_file_path)
     base_dir = os.path.dirname(scenario_file_path)
 
-    records = player.play_scenario(scenario)
+    tag = cfg.CONF.tag
+    if not tag:
+        tag = utils.random_string()
+        LOG.info('Using auto-generated tag "%s"', tag)
+
+    records = player.play_scenario(scenario, tag)
 
     storage.store_data(records, cfg.CONF.mongo_url, cfg.CONF.mongo_db)
 
     report.generate_report(scenario, base_dir, cfg.CONF.mongo_url,
-                           cfg.CONF.mongo_db, cfg.CONF.book)
+                           cfg.CONF.mongo_db, cfg.CONF.book, tag)
 
 
 if __name__ == "__main__":
