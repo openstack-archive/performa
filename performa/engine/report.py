@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import errno
 import functools
 import os
@@ -36,6 +37,7 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
     chart = yaml.safe_load(chart_str)
     pipeline = chart.get('pipeline')
     title = chart.get('title')
+    fill = chart.get('fill') or False
     axes = chart.get('axes') or dict(x='x', y='y')
 
     if tag:
@@ -43,28 +45,35 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
 
     chart_data = records_collection.aggregate(pipeline)
 
-    line = []
+    lines = collections.defaultdict(list)
 
     table = '''
 .. list-table:: %(title)s
    :header-rows: 1
 
-   * - %(x)s
-     - %(y)s
-''' % dict(title=title, x=axes['x'], y=axes['y'])
+   *
+''' % dict(title=title)
+
+    table += ''.join(('     - %s\n' % axes[k]) for k in sorted(axes.keys()))
+
+    y_keys = set(axes.keys()) ^ set('x')
 
     for chart_rec in chart_data:
-        line.append((chart_rec['x'], chart_rec['y']))
+        for k in y_keys:
+            lines[k].append((chart_rec['x'], chart_rec[k]))
         table += ('   *\n' +
-                  '\n'.join('     - %d' % chart_rec[v] for v in ('x', 'y')) +
+                  '\n'.join('     - %d' % chart_rec[v]
+                            for v in sorted(axes.keys())) +
                   '\n')
 
     xy_chart = pygal.XY(style=style.RedBlueStyle,
-                        fill=True,
+                        fill=fill,
                         legend_at_bottom=True,
                         include_x_axis=True,
                         x_title=axes['x'])
-    xy_chart.add(axes['y'], line)
+
+    for k in y_keys:
+        xy_chart.add(axes[k], lines[k])
 
     chart_filename = utils.strict(title)
     abs_chart_filename = '%s.svg' % os.path.join(doc_folder, chart_filename)
@@ -130,7 +139,7 @@ def main():
     base_dir = os.path.dirname(scenario_file_path)
 
     generate_report(scenario, base_dir, cfg.CONF.mongo_url, cfg.CONF.mongo_db,
-                    cfg.CONF.book)
+                    cfg.CONF.book, cfg.CONF.tag)
 
 
 if __name__ == "__main__":

@@ -14,11 +14,18 @@ Chart and table:
     axes:
       x: threads
       y: queries per sec
+      y2: read queries per sec
     chart: line
     pipeline:
     - { $match: { class: sysbench-oltp, status: OK }}
-    - { $group: { _id: { threads: "$threads" }, queries_total_per_sec: { $avg: { $divide: ["$queries_total", "$duration"] }}}}
-    - { $project: { x: "$_id.threads", y: "$queries_total_per_sec" }}
+    - { $group: { _id: { threads: "$threads" },
+                  queries_total_per_sec: { $avg: { $divide: ["$queries_total", "$duration"] }},
+                  queries_read_per_sec: { $avg: { $divide: ["$queries_read", "$duration"] }}
+                }}
+    - { $project: { x: "$_id.threads",
+                    y: "$queries_total_per_sec",
+                    y2: "$queries_read_per_sec"
+                  }}
     - { $sort: { x: 1 }}
 ''' | chart
 }}
