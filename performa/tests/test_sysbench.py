@@ -60,7 +60,7 @@ Threads fairness:
 '''
 
 
-class TestUtils(testtools.TestCase):
+class TestSysbench(testtools.TestCase):
     def test_parse_oltp(self):
 
         expected = {

@@ -35,7 +35,6 @@ class Endpoint(types.String):
         return "Endpoint host[:port]"
 
 
-
 MAIN_OPTS = [
     cfg.StrOpt('scenario',
                default=utils.env('PERFORMA_SCENARIO'),
