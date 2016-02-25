@@ -15,7 +15,7 @@
 
 import testtools
 
-from performa.executors import sysbench
+from performa.modules import sysbench_oltp as sysbench
 
 OLTP_OUTPUT = '''
 sysbench 0.4.12:  multi-threaded system evaluation benchmark

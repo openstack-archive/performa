@@ -17,6 +17,7 @@ import copy
 
 from oslo_config import cfg
 from oslo_config import types
+import yaml
 
 from performa.engine import utils
 
@@ -33,6 +34,20 @@ class Endpoint(types.String):
 
     def __repr__(self):
         return "Endpoint host[:port]"
+
+
+class Yaml(types.String):
+
+    def __call__(self, value):
+        value = str(value)
+        try:
+            value = yaml.safe_load(value)
+        except Exception:
+            raise ValueError('YAML value is expected, but got: %s' % value)
+        return value
+
+    def __repr__(self):
+        return "YAML data"
 
 
 MAIN_OPTS = [
@@ -52,10 +67,12 @@ MAIN_OPTS = [
                default=utils.env('PERFORMA_MONGO_DB'),
                required=True,
                help='Mongo DB, defaults to env[PERFORMA_MONGO_DB].'),
-    cfg.ListOpt('hosts',
-                default=utils.env('PERFORMA_HOSTS'),
-                required=True,
-                help='List of hosts, defaults to env[PERFORMA_MONGO_URL].'),
+    cfg.Opt('hosts',
+            type=Yaml(),
+            default=utils.env('PERFORMA_HOSTS'),
+            required=True,
+            help='Hosts inventory definition in YAML format, '
+                 'Can be specified via env[PERFORMA_HOSTS].'),
     cfg.StrOpt('book',
                default=utils.env('PERFORMA_BOOK'),
                help='Generate report in ReST format and store it into the '

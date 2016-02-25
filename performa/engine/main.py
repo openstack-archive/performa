@@ -17,6 +17,7 @@ import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import yaml
 
 from performa.engine import config
 from performa.engine import player
@@ -27,6 +28,13 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
+def resolve_hosts(scenario, hosts):
+    for k, v in hosts.items():
+        scenario = scenario.replace('$%s' % k, ','.join(v) + ',')
+
+    return scenario
+
+
 def main():
     utils.init_config_and_logging(config.MAIN_OPTS)
 
@@ -34,7 +42,10 @@ def main():
         cfg.CONF.scenario,
         alias_mapper=lambda f: config.SCENARIOS + '%s.yaml' % f)
 
-    scenario = utils.read_yaml_file(scenario_file_path)
+    scenario_raw = utils.read_file(scenario_file_path)
+    scenario_raw = resolve_hosts(scenario_raw, cfg.CONF.hosts)
+    scenario = yaml.safe_load(scenario_raw)
+
     base_dir = os.path.dirname(scenario_file_path)
 
     tag = cfg.CONF.tag
@@ -44,7 +55,10 @@ def main():
 
     records = player.play_scenario(scenario, tag)
 
-    storage.store_data(records, cfg.CONF.mongo_url, cfg.CONF.mongo_db)
+    if records:
+        storage.store_data(records, cfg.CONF.mongo_url, cfg.CONF.mongo_db)
+    else:
+        LOG.warning('Execution generated no records')
 
     report.generate_report(scenario, base_dir, cfg.CONF.mongo_url,
                            cfg.CONF.mongo_db, cfg.CONF.book, tag)

@@ -1,25 +1,26 @@
-title: DB
+title: Sysbench DB
 
 description:
   This scenario uses sysbench to execute DB test plan.
 
-preparation:
-  ansible-playbook:
-    -
-      tasks:
-      - apt: name=sysbench
-        become: yes
-        become_user: root
-        become_method: sudo
+setup:
+  -
+    hosts: $target
+    tasks:
+    - name: installing sysbench
+      apt: name=sysbench
+      become: yes
+      become_user: root
+      become_method: sudo
 
 execution:
-  matrix:
-    threads: [ 10, 20, 30, 40, 50, 60 ]
-  tests:
   -
-    title: sysbench-oltp
-    class: sysbench-oltp
-    time: 10
+    hosts: $target
+    matrix:
+      threads: [ 10, 20, 30 ]
+    tasks:
+    - sysbench_oltp:
+        duration: 10
 
 report:
   template: sysbench.rst

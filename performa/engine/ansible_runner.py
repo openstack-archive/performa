@@ -23,6 +23,8 @@ from ansible.plugins import callback
 from ansible.vars import VariableManager
 from oslo_log import log as logging
 
+from performa.engine import utils
+
 LOG = logging.getLogger(__name__)
 
 
@@ -70,10 +72,14 @@ Options = namedtuple('Options',
 
 def _run(play_source, host_list):
 
+    LOG.debug('Running play: %s on hosts: %s', play_source, host_list)
+
     variable_manager = VariableManager()
     loader = dataloader.DataLoader()
+    module_path = utils.resolve_relative_path('performa/modules')
+
     options = Options(connection='smart', password='swordfish',
-                      module_path='/path/to/mymodules',
+                      module_path=module_path,
                       forks=100, remote_user='developer',
                       private_key_file=None,
                       ssh_common_args=None, ssh_extra_args=None,
@@ -129,11 +135,13 @@ def run_command(command, host_list):
     return _run(play_source, hosts)
 
 
-def run_playbook(playbook, host_list):
+def run_playbook(playbook):
+    result = []
 
     for play_source in playbook:
-        hosts = ','.join(host_list) + ','
-        play_source['hosts'] = hosts
+        hosts = play_source['hosts']
         play_source['gather_facts'] = 'no'
 
-        _run(play_source, hosts)
+        result += (_run(play_source, hosts))
+
+    return result

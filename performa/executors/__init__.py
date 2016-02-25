@@ -14,10 +14,8 @@
 # limitations under the License.
 
 from performa.executors import shell
-from performa.executors import sysbench
 
 EXECUTORS = {
-    'sysbench-oltp': sysbench.SysbenchOltpExecutor,
     '_default': shell.ShellExecutor,
 }
 

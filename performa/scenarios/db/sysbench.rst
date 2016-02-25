@@ -17,7 +17,7 @@ Chart and table:
       y2: read queries per sec
     chart: line
     pipeline:
-    - { $match: { class: sysbench-oltp, status: OK }}
+    - { $match: { task: sysbench_oltp, status: OK }}
     - { $group: { _id: { threads: "$threads" },
                   queries_total_per_sec: { $avg: { $divide: ["$queries_total", "$duration"] }},
                   queries_read_per_sec: { $avg: { $divide: ["$queries_read", "$duration"] }}

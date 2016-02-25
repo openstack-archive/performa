@@ -14,14 +14,12 @@
 # limitations under the License.
 
 import copy
-import re
 
 from oslo_config import cfg
 from oslo_log import log as logging
 
 from performa.engine import ansible_runner
 from performa.engine import utils
-from performa import executors as executors_classes
 
 LOG = logging.getLogger(__name__)
 
@@ -30,52 +28,57 @@ def run_command(command):
     return ansible_runner.run_command(command, cfg.CONF.hosts)
 
 
-def _make_test_title(test, params=None):
-    s = test.get('title') or test.get('class')
-    if params:
-        s += ' '.join([','.join(['%s=%s' % (k, v) for k, v in params.items()
-                                if k != 'host'])])
-    return re.sub(r'[^\x20-\x7e\x80-\xff]+', '_', s)
-
-
-def _pick_tests(tests, matrix):
+def _pick_tasks(tasks, matrix):
     matrix = matrix or {}
-    for test in tests:
-        for params in utils.algebraic_product(**matrix):
-            parametrized_test = copy.deepcopy(test)
-            parametrized_test.update(params)
-            parametrized_test['title'] = _make_test_title(test, params)
 
-            yield parametrized_test
+    for params in utils.algebraic_product(**matrix):
+        for task in tasks:
+            parametrized_task = copy.deepcopy(task)
+            values = parametrized_task.values()[0]
 
+            if isinstance(values, dict):
+                values.update(params)
 
-def play_preparation(preparation):
-    ansible_playbook = preparation.get('ansible-playbook')
-    if ansible_playbook:
-        ansible_runner.run_playbook(ansible_playbook, cfg.CONF.hosts)
+            yield parametrized_task
 
 
-def play_execution(execution):
+def play_setup(setup):
+    ansible_runner.run_playbook(setup)
+
+
+def play_execution(execution_playbook):
     records = []
-    matrix = execution.get('matrix')
 
-    for test in _pick_tests(execution['tests'], matrix):
-        executor = executors_classes.get_executor(test)
-        command = executor.get_command()
+    for play in execution_playbook:
+        matrix = play.get('matrix')
 
-        command_results = run_command(command)
-        for command_result in command_results:
+        for task in _pick_tasks(play['tasks'], matrix):
 
-            record = dict(id=utils.make_id(),
-                          host=command_result['host'],
-                          status=command_result['status'])
-            record.update(test)
+            task_play = {
+                'hosts': play['hosts'],
+                'tasks': [task],
+            }
+            command_results = ansible_runner.run_playbook([task_play])
 
-            if command_result.get('status') == 'OK':
-                er = executor.process_reply(command_result['payload'])
-                record.update(er)
+            for command_result in command_results:
+                if command_result.get('status') == 'OK':
+                    record = dict(id=utils.make_id(),
+                                  host=command_result['host'],
+                                  status=command_result['status'],
+                                  task=command_result['task'])
+                    payload = command_result['payload']
+                    record.update(payload['invocation']['module_args'])
+                    record.update(payload)
 
-            records.append(record)
+                    # keep flat values only
+                    for k, v in record.items():
+                        if isinstance(v, list) or isinstance(v, dict):
+                            del record[k]
+
+                    del record['stdout']
+
+                    LOG.debug('Record: %s', record)
+                    records.append(record)
 
     return records
 
@@ -88,8 +91,8 @@ def tag_records(records, tag):
 def play_scenario(scenario, tag):
     records = {}
 
-    if 'preparation' in scenario:
-        play_preparation(scenario['preparation'])
+    if 'setup' in scenario:
+        play_setup(scenario['setup'])
 
     if 'execution' in scenario:
         execution = scenario['execution']
