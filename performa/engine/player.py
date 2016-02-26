@@ -48,6 +48,7 @@ def play_setup(setup):
 
 def play_execution(execution_playbook):
     records = []
+    series = []
 
     for play in execution_playbook:
         matrix = play.get('matrix')
@@ -62,35 +63,37 @@ def play_execution(execution_playbook):
 
             for command_result in command_results:
                 if command_result.get('status') == 'OK':
-                    record = dict(id=utils.make_id(),
+                    payload = command_result['payload']
+
+                    common = dict(id=utils.make_id(),
                                   host=command_result['host'],
                                   status=command_result['status'],
                                   task=command_result['task'])
-                    payload = command_result['payload']
-                    record.update(payload['invocation']['module_args'])
-                    record.update(payload)
+                    common.update(payload['invocation']['module_args'])
 
-                    # keep flat values only
-                    for k, v in record.items():
-                        if isinstance(v, list) or isinstance(v, dict):
-                            del record[k]
+                    if 'records' in payload:
+                        for rec in payload['records']:
+                            rec.update(common)
+                            records.append(rec)
+                            LOG.debug('New record: %s', rec)
 
-                    if 'stdout' in record:
-                        del record['stdout']
+                    if 'series' in payload:
+                        for rec in payload['series']:
+                            rec.update(common)
+                            series.append(rec)
+                            LOG.debug('New time series: %s', rec)
 
-                    LOG.debug('Record: %s', record)
-                    records.append(record)
-
-    return records
+    return records, series
 
 
-def tag_records(records, tag):
+def add_tag(records, tag):
     for r in records:
         r['tag'] = tag
 
 
 def play_scenario(scenario, tag):
-    records = {}
+    records = []
+    series = []
 
     if 'setup' in scenario:
         play_setup(scenario['setup'])
@@ -98,7 +101,8 @@ def play_scenario(scenario, tag):
     if 'execution' in scenario:
         execution = scenario['execution']
 
-        records = play_execution(execution)
-        tag_records(records, tag)
+        records, series = play_execution(execution)
+        add_tag(records, tag)
+        add_tag(series, tag)
 
-    return records
+    return records, series

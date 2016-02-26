@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
+import os
 import re
+import tempfile
 
-ATOP_FILE_NAME = '/tmp/performa.atop'
+ATOP_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.atop')
 UNIQUE_NAME = 'performa_atop'
 
 PREFIX_PATTERN = (

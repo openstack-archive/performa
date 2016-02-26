@@ -53,12 +53,9 @@ def main():
         tag = utils.random_string()
         LOG.info('Using auto-generated tag "%s"', tag)
 
-    records = player.play_scenario(scenario, tag)
+    records, series = player.play_scenario(scenario, tag)
 
-    if records:
-        storage.store_data(records, cfg.CONF.mongo_url, cfg.CONF.mongo_db)
-    else:
-        LOG.warning('Execution generated no records')
+    storage.store_data(cfg.CONF.mongo_url, cfg.CONF.mongo_db, records, series)
 
     report.generate_report(scenario, base_dir, cfg.CONF.mongo_url,
                            cfg.CONF.mongo_db, cfg.CONF.book, tag)

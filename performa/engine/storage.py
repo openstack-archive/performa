@@ -21,12 +21,17 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def store_data(records, mongo_url, mongo_db):
+def store_data(mongo_url, mongo_db, records, series):
     LOG.info('Store data to Mongo: %s', mongo_url)
 
     connection_params = utils.parse_url(mongo_url)
     mongo_client = pymongo.MongoClient(**connection_params)
     db = mongo_client.get_database(mongo_db)
 
-    records_collection = db.get_collection('records')
-    records_collection.insert_many(records)
+    if records:
+        records_collection = db.get_collection('records')
+        records_collection.insert_many(records)
+
+    if series:
+        series_collection = db.get_collection('series')
+        series_collection.insert_many(series)

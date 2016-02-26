@@ -68,17 +68,19 @@ def main():
            'run'
            ) % module.params
 
+    start = int(time.time())
     rc, stdout, stderr = module.run_command(cmd)
-
-    result = dict(changed=True, rc=rc, stdout=stdout, stderr=stderr, cmd=cmd)
+    end = int(time.time())
 
     try:
-        result.update(parse_sysbench_oltp(stdout))
+        parsed = parse_sysbench_oltp(stdout)
+        parsed['start'] = start
+        parsed['end'] = end
+
+        result = dict(records=[parsed])
         module.exit_json(**result)
     except Exception as e:
-        result['exception'] = e
-
-    module.fail_json(**result)
+        module.fail_json(msg=e, rc=rc, stderr=stderr, stdout=stdout)
 
 
 from ansible.module_utils.basic import *  # noqa
