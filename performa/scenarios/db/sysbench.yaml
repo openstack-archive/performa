@@ -12,6 +12,16 @@ setup:
       become: yes
       become_user: root
       become_method: sudo
+    - name: installing atop
+      apt:
+        name: atop, daemon
+      become: yes
+      become_user: root
+      become_method: sudo
+  -
+    hosts: $target
+    tasks:
+    - atop: command=start
 
 execution:
   -
@@ -21,6 +31,12 @@ execution:
     tasks:
     - sysbench_oltp:
         duration: 10
+  -
+    hosts: $target
+    tasks:
+    - atop:
+        command: stop
+        labels: [ CPU, PRC, PRM ]
 
 report:
   template: sysbench.rst

@@ -75,7 +75,8 @@ def play_execution(execution_playbook):
                         if isinstance(v, list) or isinstance(v, dict):
                             del record[k]
 
-                    del record['stdout']
+                    if 'stdout' in record:
+                        del record['stdout']
 
                     LOG.debug('Record: %s', record)
                     records.append(record)

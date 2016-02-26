@@ -118,6 +118,7 @@ def _run(play_source, host_list):
         if tqm is not None:
             tqm.cleanup()
 
+    LOG.debug('Execution result: %s', storage)
     return storage
 
 
