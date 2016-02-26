@@ -19,6 +19,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import yaml
 
+from performa.engine import ansible_runner
 from performa.engine import config
 from performa.engine import player
 from performa.engine import report
@@ -53,7 +54,9 @@ def main():
         tag = utils.random_string()
         LOG.info('Using auto-generated tag "%s"', tag)
 
-    records, series = player.play_scenario(scenario, tag)
+    runner = ansible_runner.AnsibleRunner(remote_user=cfg.CONF.remote_user)
+
+    records, series = player.play_scenario(runner, scenario, tag)
 
     storage.store_data(cfg.CONF.mongo_url, cfg.CONF.mongo_db, records, series)
 

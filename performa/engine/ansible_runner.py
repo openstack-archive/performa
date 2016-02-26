@@ -14,12 +14,13 @@
 # limitations under the License.
 
 from collections import namedtuple
+import copy
 
 from ansible.executor import task_queue_manager
 from ansible import inventory
 from ansible.parsing import dataloader
 from ansible.playbook import play
-from ansible.plugins import callback
+from ansible.plugins import callback as callback_pkg
 from ansible.vars import VariableManager
 from oslo_log import log as logging
 
@@ -28,7 +29,22 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-class MyCallback(callback.CallbackBase):
+def _light_rec(result):
+    for r in result:
+        c = copy.deepcopy(r)
+        if 'records' in c:
+            del c['records']
+        if 'series' in c:
+            del c['series']
+        yield c
+
+
+def _log_result(result):
+    # todo check current log level before doing heavy things
+    LOG.debug('Execution result (filtered): %s', list(_light_rec(result)))
+
+
+class MyCallback(callback_pkg.CallbackBase):
 
     CALLBACK_VERSION = 2.0
     CALLBACK_TYPE = 'stdout'
@@ -70,79 +86,65 @@ Options = namedtuple('Options',
                       'become_method', 'become_user', 'verbosity', 'check'])
 
 
-def _run(play_source, host_list):
+class AnsibleRunner(object):
+    def __init__(self, remote_user='developer', forks=100):
+        super(AnsibleRunner, self).__init__()
 
-    LOG.debug('Running play: %s on hosts: %s', play_source, host_list)
+        module_path = utils.resolve_relative_path('performa/modules')
+        self.options = Options(
+            connection='smart', password='swordfish', module_path=module_path,
+            forks=forks, remote_user=remote_user, private_key_file=None,
+            ssh_common_args=None, ssh_extra_args=None, sftp_extra_args=None,
+            scp_extra_args=None, become=None, become_method='sudo',
+            become_user='root', verbosity=100, check=False)
 
-    variable_manager = VariableManager()
-    loader = dataloader.DataLoader()
-    module_path = utils.resolve_relative_path('performa/modules')
+    def _run_play(self, play_source):
+        LOG.debug('Running play: %s', play_source)
 
-    options = Options(connection='smart', password='swordfish',
-                      module_path=module_path,
-                      forks=100, remote_user='developer',
-                      private_key_file=None,
-                      ssh_common_args=None, ssh_extra_args=None,
-                      sftp_extra_args=None, scp_extra_args=None, become=None,
-                      become_method=None, become_user=None, verbosity=100,
-                      check=False)
-    passwords = dict(vault_pass='secret')
+        host_list = play_source['hosts']
 
-    # create inventory and pass to var manager
-    inventory_inst = inventory.Inventory(loader=loader,
-                                         variable_manager=variable_manager,
-                                         host_list=host_list)
-    variable_manager.set_inventory(inventory_inst)
+        loader = dataloader.DataLoader()
+        variable_manager = VariableManager()
+        inventory_inst = inventory.Inventory(loader=loader,
+                                             variable_manager=variable_manager,
+                                             host_list=host_list)
+        variable_manager.set_inventory(inventory_inst)
+        passwords = dict(vault_pass='secret')
 
-    # create play
-    play_inst = play.Play().load(play_source,
-                                 variable_manager=variable_manager,
-                                 loader=loader)
+        # create play
+        play_inst = play.Play().load(play_source,
+                                     variable_manager=variable_manager,
+                                     loader=loader)
 
-    storage = []
-    callback = MyCallback(storage)
+        storage = []
+        callback = MyCallback(storage)
 
-    # actually run it
-    tqm = None
-    try:
-        tqm = task_queue_manager.TaskQueueManager(
-            inventory=inventory_inst,
-            variable_manager=variable_manager,
-            loader=loader,
-            options=options,
-            passwords=passwords,
-            stdout_callback=callback,
-        )
-        tqm.run(play_inst)
-    finally:
-        if tqm is not None:
-            tqm.cleanup()
+        # actually run it
+        tqm = None
+        try:
+            tqm = task_queue_manager.TaskQueueManager(
+                inventory=inventory_inst,
+                variable_manager=variable_manager,
+                loader=loader,
+                options=self.options,
+                passwords=passwords,
+                stdout_callback=callback,
+            )
+            tqm.run(play_inst)
+        finally:
+            if tqm is not None:
+                tqm.cleanup()
 
-    LOG.debug('Execution result: %s', storage)
-    return storage
+        _log_result(storage)
 
+        return storage
 
-def run_command(command, host_list):
-    hosts = ','.join(host_list) + ','
-    # tasks = [dict(action=dict(module='shell', args=command))]
-    tasks = [{'command': command}]
+    def run(self, playbook):
+        result = []
 
-    play_source = dict(
-        hosts=host_list,
-        gather_facts='no',
-        tasks=tasks,
-    )
+        for play_source in playbook:
+            play_source['gather_facts'] = 'no'
 
-    return _run(play_source, hosts)
+            result += self._run_play(play_source)
 
-
-def run_playbook(playbook):
-    result = []
-
-    for play_source in playbook:
-        hosts = play_source['hosts']
-        play_source['gather_facts'] = 'no'
-
-        result += (_run(play_source, hosts))
-
-    return result
+        return result

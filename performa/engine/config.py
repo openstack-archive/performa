@@ -67,6 +67,11 @@ MAIN_OPTS = [
                default=utils.env('PERFORMA_MONGO_DB'),
                required=True,
                help='Mongo DB, defaults to env[PERFORMA_MONGO_DB].'),
+    cfg.StrOpt('remote-user',
+               default=utils.env('PERFORMA_REMOTE_USER'),
+               required=True,
+               help='User for connecting to remote systems, '
+                    'defaults to env[PERFORMA_REMOTE_USER].'),
     cfg.Opt('hosts',
             type=Yaml(),
             default=utils.env('PERFORMA_HOSTS'),

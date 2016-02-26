@@ -10,14 +10,10 @@ setup:
     - name: installing sysbench
       apt: name=sysbench
       become: yes
-      become_user: root
-      become_method: sudo
     - name: installing atop
       apt:
         name: atop, daemon
       become: yes
-      become_user: root
-      become_method: sudo
   -
     hosts: $target
     tasks:

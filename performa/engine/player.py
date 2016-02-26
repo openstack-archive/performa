@@ -15,17 +15,11 @@
 
 import copy
 
-from oslo_config import cfg
 from oslo_log import log as logging
 
-from performa.engine import ansible_runner
 from performa.engine import utils
 
 LOG = logging.getLogger(__name__)
-
-
-def run_command(command):
-    return ansible_runner.run_command(command, cfg.CONF.hosts)
 
 
 def _pick_tasks(tasks, matrix):
@@ -42,11 +36,11 @@ def _pick_tasks(tasks, matrix):
             yield parametrized_task
 
 
-def play_setup(setup):
-    ansible_runner.run_playbook(setup)
+def play_setup(runner, setup_playbook):
+    runner.run(setup_playbook)
 
 
-def play_execution(execution_playbook):
+def play_execution(runner, execution_playbook):
     records = []
     series = []
 
@@ -59,7 +53,7 @@ def play_execution(execution_playbook):
                 'hosts': play['hosts'],
                 'tasks': [task],
             }
-            command_results = ansible_runner.run_playbook([task_play])
+            command_results = runner.run([task_play])
 
             for command_result in command_results:
                 if command_result.get('status') == 'OK':
@@ -91,17 +85,17 @@ def add_tag(records, tag):
         r['tag'] = tag
 
 
-def play_scenario(scenario, tag):
+def play_scenario(runner, scenario, tag):
     records = []
     series = []
 
     if 'setup' in scenario:
-        play_setup(scenario['setup'])
+        play_setup(runner, scenario['setup'])
 
     if 'execution' in scenario:
         execution = scenario['execution']
 
-        records, series = play_execution(execution)
+        records, series = play_execution(runner, execution)
         add_tag(records, tag)
         add_tag(series, tag)
 
