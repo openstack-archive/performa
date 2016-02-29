@@ -1,0 +1,5 @@
+2016-02-29 10:33:51,044 INFO root Preparing 1 messages
+2016-02-29 10:33:51,046 INFO root Messages has been prepared
+2016-02-29 10:34:01,062 INFO root 5313 messages were sent for 10 seconds. Bandwidth was 530 msg/sec
+2016-02-29 10:34:01,062 INFO root 14897652 bytes were sent for 10 seconds. Bandwidth is 1487420 b/s
+2016-02-29 10:34:01,062 INFO root calls finished, wait 0 seconds

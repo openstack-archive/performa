@@ -95,6 +95,9 @@ def _make_dir(name):
 
 def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
                     tag=None):
+    if 'report' not in scenario:
+        return  # nothing to do
+
     LOG.info('Generate report')
 
     doc_folder = doc_folder or tempfile.mkdtemp(prefix='performa')

@@ -1,0 +1,40 @@
+title: OMSimulator
+
+description:
+  This scenario uses oslo.messaging simulator tool to execute MQ test plan.
+
+setup:
+  -
+    hosts: $target
+    tasks:
+    - name: installing omsimulator
+      git: repo=git://git.openstack.org/openstack/oslo.messaging
+           dest=/tmp/performa/oslo.messaging
+    - apt: name=atop
+      become: yes
+    - apt: name=daemon
+      become: yes
+  -
+    hosts: $target
+    tasks:
+    - atop: command=start
+
+execution:
+  -
+    hosts: $target
+    matrix:
+      threads: [ 1, 2, 5, 10, 25, 50, 100 ]
+    tasks:
+    - omsimulator:
+        mode: call
+        duration: 10
+        url: "rabbit://stackrabbit:swordfish@localhost:5672/"
+  -
+    hosts: $target
+    tasks:
+    - atop:
+        command: stop
+        labels: [ CPU, PRC, PRM ]
+
+report:
+  template: omsimulator.rst
