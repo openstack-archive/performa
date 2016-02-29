@@ -36,5 +36,15 @@ execution:
         command: stop
         labels: [ CPU, PRC, PRM ]
 
+aggregation:
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - { $match: { task: atop, status: OK, label: PRC, name: beam.smp }}
+        - { $group: { _id: null, rabbit_sys: { $avg: "$sys" }, rabbit_user: { $avg: "$user" }, rabbit_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
+
 report:
   template: omsimulator.rst
