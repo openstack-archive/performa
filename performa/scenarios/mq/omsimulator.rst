@@ -1,5 +1,5 @@
-Sysbench Report
----------------
+OMSimulator Report
+------------------
 
 This is the report of execution test plan
 :ref:`mq_test_plan` with `Sysbench`_ tool.
