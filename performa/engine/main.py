@@ -19,6 +19,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import yaml
 
+from performa.engine import aggregator
 from performa.engine import ansible_runner
 from performa.engine import config
 from performa.engine import player
@@ -59,6 +60,8 @@ def main():
     records, series = player.play_scenario(runner, scenario, tag)
 
     storage.store_data(cfg.CONF.mongo_url, cfg.CONF.mongo_db, records, series)
+
+    aggregator.aggregate(scenario, cfg.CONF.mongo_url, cfg.CONF.mongo_db, tag)
 
     report.generate_report(scenario, base_dir, cfg.CONF.mongo_url,
                            cfg.CONF.mongo_db, cfg.CONF.book, tag)
