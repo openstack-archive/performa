@@ -15,6 +15,7 @@
 
 import os
 
+import jinja2
 from oslo_config import cfg
 from oslo_log import log as logging
 import yaml
@@ -30,11 +31,13 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def resolve_hosts(scenario, hosts):
-    for k, v in hosts.items():
-        scenario = scenario.replace('$%s' % k, ','.join(v) + ',')
+def resolve_hosts(scenario_template, hosts):
+    jinja_env = jinja2.Environment()
 
-    return scenario
+    compiled_template = jinja_env.from_string(scenario_template)
+    rendered_template = compiled_template.render(hosts)
+
+    return rendered_template
 
 
 def main():

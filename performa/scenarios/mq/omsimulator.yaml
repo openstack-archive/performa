@@ -3,9 +3,12 @@ title: OMSimulator
 description:
   This scenario uses oslo.messaging simulator tool to execute MQ test plan.
 
+parameters:
+  target: List of hosts were omsimulator will be executed
+
 setup:
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - apt: name=git
       become: yes
@@ -25,11 +28,11 @@ setup:
 
 execution:
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - atop: command=start
   -
-    hosts: $target
+    hosts: {{ target }}
     matrix:
       threads: [ 1, 2, 5, 10, 25, 50, 100 ]
     tasks:
@@ -38,7 +41,7 @@ execution:
         duration: 10
         url: "rabbit://stackrabbit:swordfish@localhost:5672/"
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - atop:
         command: stop

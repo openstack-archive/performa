@@ -3,9 +3,12 @@ title: Sysbench DB
 description:
   This scenario uses sysbench to execute DB test plan.
 
+parameters:
+  target: List of hosts were omsimulator will be executed
+
 setup:
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - name: installing sysbench
       apt: name=sysbench
@@ -15,20 +18,20 @@ setup:
         name: atop, daemon
       become: yes
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - atop: command=start
 
 execution:
   -
-    hosts: $target
+    hosts: {{ target }}
     matrix:
       threads: [ 10, 20, 30, 40, 50, 60 ]
     tasks:
     - sysbench_oltp:
         duration: 10
   -
-    hosts: $target
+    hosts: {{ target }}
     tasks:
     - atop:
         command: stop
