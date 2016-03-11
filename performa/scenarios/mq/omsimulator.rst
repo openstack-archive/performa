@@ -14,14 +14,17 @@ Messages per second depending on threads count:
     axes:
       x: threads
       y: messages per sec
+      y2: latency
     chart: line
     pipeline:
     - { $match: { task: omsimulator, status: OK }}
     - { $group: { _id: { threads: "$threads" },
-                  msg_sent_per_sec: { $avg: { $divide: ["$msg_sent", "$duration"] }}
+                  msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
+                  latency: { $avg: "$latency" }
                 }}
     - { $project: { x: "$_id.threads",
-                    y: "$msg_sent_per_sec"
+                    y: "$msg_sent_per_sec",
+                    y2: { $multiply: ["$latency", 1000] }
                   }}
     - { $sort: { x: 1 }}
 ''' | chart
@@ -39,7 +42,7 @@ Messages per second and rabbit CPU consumption depending on threads count:
     pipeline:
     - { $match: { task: omsimulator, status: OK }}
     - { $group: { _id: { threads: "$threads" },
-                  msg_sent_per_sec: { $avg: { $divide: ["$msg_sent", "$duration"] }},
+                  msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
                   rabbit_total: { $avg: "$rabbit_total" }
                 }}
     - { $project: { x: "$_id.threads",

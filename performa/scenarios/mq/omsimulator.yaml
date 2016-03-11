@@ -7,19 +7,27 @@ setup:
   -
     hosts: $target
     tasks:
+    - apt: name=git
+      become: yes
     - name: installing omsimulator
       git: repo=git://git.openstack.org/openstack/oslo.messaging
            dest=/tmp/performa/oslo.messaging
+    - command: git fetch https://review.openstack.org/openstack/oslo.messaging refs/changes/91/291191/2
+      args:
+        chdir: /tmp/performa/oslo.messaging
+    - command: git checkout FETCH_HEAD
+      args:
+        chdir: /tmp/performa/oslo.messaging
     - apt: name=atop
       become: yes
     - apt: name=daemon
       become: yes
+
+execution:
   -
     hosts: $target
     tasks:
     - atop: command=start
-
-execution:
   -
     hosts: $target
     matrix:

@@ -1,9 +1,13 @@
 #!/usr/bin/python
-
+import copy
 import os
 import tempfile
 
-ATOP_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.atop')
+import signal
+
+SERVER_PID = os.path.join(tempfile.gettempdir(), 'performa.oms.pid')
+SERVER_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.oms.srv')
+CLIENT_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.oms.cln')
 UNIQUE_NAME = 'performa_omsimulator'
 DIR = '/tmp/performa/oslo.messaging/tools/'
 
@@ -45,18 +49,51 @@ def chdir(module):
 
 
 def start_daemon(module, cmd):
-    cmd = ('daemon -n %(name)s -D %(dir)s -- %(cmd)s' %
-           dict(name=UNIQUE_NAME, dir=DIR, cmd=cmd))
+    cmd = ('daemon -n %(name)s -D %(dir)s -F %(pid)s -- %(cmd)s' %
+           dict(name=UNIQUE_NAME, dir=DIR, pid=SERVER_PID, cmd=cmd))
 
     rc, stdout, stderr = module.run_command(cmd)
     result = dict(changed=True, rc=rc, stdout=stdout, stderr=stderr, cmd=cmd)
 
     if rc:
-        module.fail_json(msg='Failed to start OMSimulator', **result)
+        module.fail_json(msg='Failed to start omsimulator', **result)
+
+
+def stop_daemon(module):
+    rc, stdout, stderr = module.run_command('/bin/cat %s' % SERVER_PID)
+
+    if rc:
+        return
+
+    rc, stdout, stderr = module.run_command('pgrep -P %s' % stdout)
+    os.kill(int(stdout), signal.SIGINT)
+
+    time.sleep(2)
+
+
+def read_file(filename):
+    fd = None
+    try:
+        fd = open(filename)
+        return json.loads(fd.read())
+    except IOError:
+        raise
+    finally:
+        if fd:
+            fd.close()
+
+
+def transform_series(series):
+    result = []
+    for k, v in series.items():
+        for x in v:
+            x['name'] = k
+        result += v
+    return result
 
 
 def run(module):
-    params = module.params
+    params = copy.deepcopy(module.params)
 
     if params['mode'] == 'notify':
         server_tool = 'notify-server'
@@ -67,13 +104,16 @@ def run(module):
 
     params['server_tool'] = server_tool
     params['client_tool'] = client_tool
+    params['server_file'] = SERVER_FILE_NAME
+    params['client_file'] = CLIENT_FILE_NAME
 
     server = ('python simulator.py '
               '--url %(url)s '
-              '%(server_tool)s '
-              '--show-stats true') % params
+              '--json %(server_file)s '
+              '%(server_tool)s ') % params
     client = ('python simulator.py '
               '--url=%(url)s '
+              '--json %(client_file)s '
               '-l %(duration)s '
               '%(client_tool)s '
               '-p %(threads)s ') % params
@@ -86,22 +126,30 @@ def run(module):
 
     start_daemon(module, server)
 
-    start = int(time.time())
     rc, stdout, stderr = module.run_command(client)
-    end = int(time.time())
 
     if rc:
-        module.fail_json(msg='Failed to run omsimulator client', stderr=stderr)
+        module.fail_json(msg='Failed to start omsimulator',
+                         stderr=stderr, rc=rc, cmd=client)
+
+    stop_daemon(module)
 
     try:
-        parsed = parse_output(stdout)
-        parsed['start'] = start
-        parsed['end'] = end
+        client_data = read_file(CLIENT_FILE_NAME)
+        server_data = read_file(SERVER_FILE_NAME)
 
-        result = dict(records=[parsed])
+        client_summary = client_data['summary']['client']
+        client_summary['component'] = 'client'
+        server_summary = server_data['summary']
+        server_summary['component'] = 'server'
+
+        series = transform_series(client_data['series'])
+        series.extend(transform_series(server_data['series']))
+
+        result = dict(records=[client_summary, server_summary], series=series)
         module.exit_json(**result)
     except Exception as e:
-        msg = 'Failed to start omsimulator client %s' % e
+        msg = 'Failed to read omsimulator output: %s' % e
         module.fail_json(msg=msg, rc=rc, stderr=stderr, stdout=stdout)
 
 
