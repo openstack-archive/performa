@@ -43,13 +43,13 @@ execution:
   -
     hosts: {{ target }}
     matrix:
-      host_count: [ 1, 2, 3 ]
+      host_count: [ 1, 2 ]
     tasks:
     - omsimulator:
         mode: call
         duration: 10
         threads: 1
-        url: "rabbit://stackrabbit:swordfish@localhost:5672/"
+        url: {{ rabbit_url }}
   -
     hosts: {{ target }}
     tasks:

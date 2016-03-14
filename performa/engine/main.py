@@ -31,11 +31,11 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def resolve_hosts(scenario_template, hosts):
+def resolve_vars(scenario_template, vars):
     jinja_env = jinja2.Environment()
 
     compiled_template = jinja_env.from_string(scenario_template)
-    rendered_template = compiled_template.render(hosts)
+    rendered_template = compiled_template.render(vars)
 
     return rendered_template
 
@@ -48,7 +48,7 @@ def main():
         alias_mapper=lambda f: config.SCENARIOS + '%s.yaml' % f)
 
     scenario_raw = utils.read_file(scenario_file_path)
-    scenario_raw = resolve_hosts(scenario_raw, cfg.CONF.hosts)
+    scenario_raw = resolve_vars(scenario_raw, cfg.CONF.vars)
     scenario = yaml.safe_load(scenario_raw)
 
     base_dir = os.path.dirname(scenario_file_path)

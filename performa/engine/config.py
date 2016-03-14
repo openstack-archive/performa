@@ -72,12 +72,12 @@ MAIN_OPTS = [
                required=True,
                help='User for connecting to remote systems, '
                     'defaults to env[PERFORMA_REMOTE_USER].'),
-    cfg.Opt('hosts',
+    cfg.Opt('vars',
             type=Yaml(),
-            default=utils.env('PERFORMA_HOSTS'),
+            default=utils.env('PERFORMA_VARS'),
             required=True,
-            help='Hosts inventory definition in YAML format, '
-                 'Can be specified via env[PERFORMA_HOSTS].'),
+            help='Variables that are injected into scenario template. '
+                 'Can be specified via env[PERFORMA_VARS].'),
     cfg.StrOpt('book',
                default=utils.env('PERFORMA_BOOK'),
                help='Generate report in ReST format and store it into the '

@@ -1,5 +1,5 @@
 usage: performa-report [-h] [--book BOOK] [--config-dir DIR]
-                       [--config-file PATH] [--debug] [--hosts HOSTS]
+                       [--config-file PATH] [--debug]
                        [--log-config-append PATH]
                        [--log-date-format DATE_FORMAT] [--log-dir LOG_DIR]
                        [--log-file PATH] [--mongo-db MONGO_DB]
@@ -7,7 +7,7 @@ usage: performa-report [-h] [--book BOOK] [--config-dir DIR]
                        [--noverbose] [--nowatch-log-file]
                        [--remote-user REMOTE_USER] [--scenario SCENARIO]
                        [--syslog-log-facility SYSLOG_LOG_FACILITY] [--tag TAG]
-                       [--use-syslog] [--verbose] [--version]
+                       [--use-syslog] [--vars VARS] [--verbose] [--version]
                        [--watch-log-file]
 
 optional arguments:
@@ -25,8 +25,6 @@ optional arguments:
                         precedence. Defaults to None.
   --debug, -d           If set to true, the logging level will be set to DEBUG
                         instead of the default INFO level.
-  --hosts HOSTS         Hosts inventory definition in YAML format, Can be
-                        specified via env[PERFORMA_HOSTS].
   --log-config-append PATH, --log_config PATH
                         The name of a logging configuration file. This file is
                         appended to any existing logging configuration files.
@@ -69,6 +67,8 @@ optional arguments:
   --use-syslog          Use syslog for logging. Existing syslog format is
                         DEPRECATED and will be changed later to honor RFC5424.
                         This option is ignored if log_config_append is set.
+  --vars VARS           Variables that are injected into scenario template.
+                        Can be specified via env[PERFORMA_VARS].
   --verbose, -v         If set to false, the logging level will be set to
                         WARNING instead of the default INFO level.
   --version             show program's version number and exit
