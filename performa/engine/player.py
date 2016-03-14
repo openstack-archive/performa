@@ -49,10 +49,18 @@ def play_execution(runner, execution_playbook):
 
         for task in _pick_tasks(play['tasks'], matrix):
 
+            hosts = play['hosts']
+
+            # special handling for limiting hosts number
+            if 'host_count' in task.values()[0]:
+                hosts = hosts[:task.values()[0]['host_count']]
+                del task.values()[0]['host_count']
+
             task_play = {
-                'hosts': play['hosts'],
+                'hosts': hosts,
                 'tasks': [task],
             }
+
             command_results = runner.run([task_play])
 
             for command_result in command_results:
@@ -62,7 +70,8 @@ def play_execution(runner, execution_playbook):
                     common = dict(id=utils.make_id(),
                                   host=command_result['host'],
                                   status=command_result['status'],
-                                  task=command_result['task'])
+                                  task=command_result['task'],
+                                  host_count=len(hosts))
                     common.update(payload['invocation']['module_args'])
 
                     if 'records' in payload:

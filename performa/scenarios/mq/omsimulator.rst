@@ -2,7 +2,7 @@ OMSimulator Report
 ------------------
 
 This is the report of execution test plan
-:ref:`mq_test_plan` with `Sysbench`_ tool.
+:ref:`mq_test_plan` with `OMSimulator`_ tool.
 
 Results
 ^^^^^^^
@@ -18,7 +18,7 @@ Messages per second depending on threads count:
     chart: line
     pipeline:
     - { $match: { task: omsimulator, status: OK }}
-    - { $group: { _id: { threads: "$threads" },
+    - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
                   msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
                   latency: { $avg: "$latency" }
                 }}
@@ -41,7 +41,7 @@ Messages per second and rabbit CPU consumption depending on threads count:
     chart: line
     pipeline:
     - { $match: { task: omsimulator, status: OK }}
-    - { $group: { _id: { threads: "$threads" },
+    - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
                   msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
                   rabbit_total: { $avg: "$rabbit_total" }
                 }}
@@ -53,6 +53,22 @@ Messages per second and rabbit CPU consumption depending on threads count:
 ''' | chart
 }}
 
-.. references:
 
-.. _Sysbench: https://github.com/akopytov/sysbench
+{{'''
+    title: Latency depending on msg/sec
+    axes:
+      x: messages per sec
+      y: latency
+    chart: line
+    pipeline:
+    - { $match: { task: omsimulator, status: OK }}
+    - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
+                  msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
+                  latency: { $avg: "$latency" }
+                }}
+    - { $project: { x: "$msg_sent_per_sec",
+                    y: { $multiply: ["$latency", 1000] }
+                  }}
+    - { $sort: { x: 1 }}
+''' | chart
+}}

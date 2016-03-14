@@ -12,33 +12,43 @@ setup:
     tasks:
     - apt: name=git
       become: yes
-    - name: installing omsimulator
-      git: repo=git://git.openstack.org/openstack/oslo.messaging
-           dest=/tmp/performa/oslo.messaging
-    - command: git fetch https://review.openstack.org/openstack/oslo.messaging refs/changes/91/291191/2
-      args:
-        chdir: /tmp/performa/oslo.messaging
-    - command: git checkout FETCH_HEAD
-      args:
-        chdir: /tmp/performa/oslo.messaging
-    - apt: name=atop
-      become: yes
-    - apt: name=daemon
-      become: yes
+#    - name: installing omsimulator
+#      git: repo=git://git.openstack.org/openstack/oslo.messaging
+#           dest=/tmp/performa/oslo.messaging
+#    - command: git fetch https://review.openstack.org/openstack/oslo.messaging refs/changes/91/291191/2
+#      args:
+#        chdir: /tmp/performa/oslo.messaging
+#    - command: git checkout FETCH_HEAD
+#      args:
+#        chdir: /tmp/performa/oslo.messaging
+#    - apt: name=atop
+#      become: yes
+#    - apt: name=daemon
+#      become: yes
 
 execution:
   -
     hosts: {{ target }}
     tasks:
     - atop: command=start
+#  -
+#    hosts: {{ target }}
+#    matrix:
+#      threads: [ 1, 2, 5, 10, 25, 50, 100 ]
+#    tasks:
+#    - omsimulator:
+#        mode: call
+#        duration: 10
+#        url: "rabbit://stackrabbit:swordfish@localhost:5672/"
   -
     hosts: {{ target }}
     matrix:
-      threads: [ 1, 2, 5, 10, 25, 50, 100 ]
+      host_count: [ 1, 2, 3 ]
     tasks:
     - omsimulator:
         mode: call
         duration: 10
+        threads: 1
         url: "rabbit://stackrabbit:swordfish@localhost:5672/"
   -
     hosts: {{ target }}
