@@ -10,6 +10,7 @@ SERVER_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.oms.srv')
 CLIENT_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.oms.cln')
 UNIQUE_NAME = 'performa_omsimulator'
 DIR = '/tmp/performa/oslo.messaging/tools/'
+PYTHON = '/tmp/performa/oslo.messaging/.venv/bin/python'
 
 PATTERNS = [
     r'(?P<msg_sent>\d+) messages were sent for (?P<duration>\d+) sec',
@@ -49,7 +50,7 @@ def chdir(module):
 
 
 def start_daemon(module, cmd):
-    cmd = ('daemon -n %(name)s -D %(dir)s -F %(pid)s -- %(cmd)s' %
+    cmd = ('daemon -n %(name)s -D %(dir)s -F %(pid)s -U -- %(cmd)s' %
            dict(name=UNIQUE_NAME, dir=DIR, pid=SERVER_PID, cmd=cmd))
 
     rc, stdout, stderr = module.run_command(cmd)
@@ -102,16 +103,17 @@ def run(module):
         server_tool = 'rpc-server'
         client_tool = 'rpc-client'
 
+    params['python'] = PYTHON
     params['server_tool'] = server_tool
     params['client_tool'] = client_tool
     params['server_file'] = SERVER_FILE_NAME
     params['client_file'] = CLIENT_FILE_NAME
 
-    server = ('python simulator.py '
+    server = ('%(python)s simulator.py '
               '--url %(url)s '
               '--json %(server_file)s '
               '%(server_tool)s ') % params
-    client = ('python simulator.py '
+    client = ('%(python)s simulator.py '
               '--url=%(url)s '
               '--json %(client_file)s '
               '-l %(duration)s '
@@ -139,14 +141,22 @@ def run(module):
         server_data = read_file(SERVER_FILE_NAME)
 
         client_summary = client_data['summary']['client']
-        client_summary['component'] = 'client'
+
+        record = dict(start=client_summary['start'],
+                       end=client_summary['end'],
+                       client=client_summary)
+
+        if 'round_trip' in client_data['summary']:
+            round_trip_summary = client_data['summary']['round_trip']
+            record['round_trip'] = round_trip_summary
+
         server_summary = server_data['summary']
-        server_summary['component'] = 'server'
+        record['server'] = server_summary
 
         series = transform_series(client_data['series'])
         series.extend(transform_series(server_data['series']))
 
-        result = dict(records=[client_summary, server_summary], series=series)
+        result = dict(records=[record], series=series)
         module.exit_json(**result)
     except Exception as e:
         msg = 'Failed to read omsimulator output: %s' % e

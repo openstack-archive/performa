@@ -37,10 +37,12 @@ def _pick_tasks(tasks, matrix):
 
 
 def play_setup(runner, setup_playbook):
+    LOG.info('Running setup')
     runner.run(setup_playbook)
 
 
 def play_execution(runner, execution_playbook):
+    LOG.info('Running execution')
     records = []
     series = []
 

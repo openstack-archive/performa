@@ -60,6 +60,8 @@ def aggregate(scenario, mongo_url, db_name, tag):
                     ]
                     series_pipeline.extend(values_pipeline)
 
+                    LOG.debug('Running series pipeline: %s', series_pipeline)
+
                     point = next(series_collection.aggregate(series_pipeline))
                     del point['_id']  # to avoid overwriting
                     rec.update(point)

@@ -40,6 +40,10 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
     fill = chart.get('fill') or False
     axes = chart.get('axes') or dict(x='x', y='y')
 
+    LOG.debug('Title: %s', title)
+
+    pipeline.insert(0, {'$match': {'status': 'OK'}})
+
     if tag:
         pipeline.insert(0, {'$match': {'tag': tag}})
 
@@ -62,7 +66,7 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
         for k in y_keys:
             lines[k].append((chart_rec['x'], chart_rec[k]))
         table += ('   *\n' +
-                  '\n'.join('     - %d' % chart_rec[v]
+                  '\n'.join('     - %.1f' % chart_rec[v]
                             for v in sorted(axes.keys())) +
                   '\n')
 
@@ -71,6 +75,8 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
                         legend_at_bottom=True,
                         include_x_axis=True,
                         x_title=axes['x'])
+
+    LOG.debug('Lines: %s', lines)
 
     for k in y_keys:
         xy_chart.add(axes[k], lines[k])

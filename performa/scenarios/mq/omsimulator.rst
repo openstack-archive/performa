@@ -7,20 +7,52 @@ This is the report of execution test plan
 Results
 ^^^^^^^
 
-Messages per second depending on threads count:
+**Message processing**
+
+The chart and table show the number of messages processed by a single process
+depending on number of eventlet threads inside of it. Messages are collected
+at 3 points: ``sent`` - messages sent by the client, ``received`` - messages
+received by the server, ``round-trip`` - replies received by the client.
 
 {{'''
-    title: Messages per second
+    title: Throughput
     axes:
       x: threads
-      y: messages per sec
-      y2: latency
+      y: sent, msg
+      y2: received, msg
+      y3: round-trip, msg
     chart: line
     pipeline:
-    - { $match: { task: omsimulator, status: OK }}
+    - { $match: { task: omsimulator, component: client }}
+    - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
+                  sent: { $avg: "$client.count" },
+                  received: { $avg: "$server.count" },
+                  round_trip: { $avg: "$round_trip.count" }
+                }}
+    - { $project: { x: "$_id.threads",
+                    y: "$sent",
+                    y2: "$received",
+                    y3: "$round_trip"
+                  }}
+    - { $sort: { x: 1 }}
+''' | chart
+}}
+
+
+**Message throughput, latency depending on thread count**
+
+{{'''
+    title: Throughput, latency depending on thread count
+    axes:
+      x: threads
+      y: throughput, msg/sec
+      y2: latency, ms
+    chart: line
+    pipeline:
+    - { $match: { task: omsimulator, component: client }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
                   msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
-                  latency: { $avg: "$latency" }
+                  latency: { $avg: "$latency" },
                 }}
     - { $project: { x: "$_id.threads",
                     y: "$msg_sent_per_sec",
@@ -40,7 +72,7 @@ Messages per second and rabbit CPU consumption depending on threads count:
       y2: rabbit CPU consumption, %
     chart: line
     pipeline:
-    - { $match: { task: omsimulator, status: OK }}
+    - { $match: { task: omsimulator }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
                   msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
                   rabbit_total: { $avg: "$rabbit_total" }
@@ -61,7 +93,7 @@ Messages per second and rabbit CPU consumption depending on threads count:
       y: latency
     chart: line
     pipeline:
-    - { $match: { task: omsimulator, status: OK }}
+    - { $match: { task: omsimulator }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
                   msg_sent_per_sec: { $avg: { $divide: ["$count", "$duration"] }},
                   latency: { $avg: "$latency" }

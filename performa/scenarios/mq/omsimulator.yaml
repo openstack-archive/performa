@@ -15,6 +15,9 @@ setup:
 #    - name: installing omsimulator
 #      git: repo=git://git.openstack.org/openstack/oslo.messaging
 #           dest=/tmp/performa/oslo.messaging
+#    - name: installing omsimulator
+#      git: repo=git://git.openstack.org/openstack/oslo.messaging
+#           dest=/tmp/performa/oslo.messaging
 #    - command: git fetch https://review.openstack.org/openstack/oslo.messaging refs/changes/91/291191/2
 #      args:
 #        chdir: /tmp/performa/oslo.messaging
@@ -43,12 +46,13 @@ execution:
   -
     hosts: {{ target }}
     matrix:
-      host_count: [ 1, 2 ]
+      host_count: [ 1 ]
+      threads: [ 1, 10, 100 ]
     tasks:
     - omsimulator:
         mode: call
         duration: 10
-        threads: 1
+        threads: 10
         url: {{ rabbit_url }}
   -
     hosts: {{ target }}
