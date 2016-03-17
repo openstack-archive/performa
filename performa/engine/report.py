@@ -33,12 +33,15 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def generate_chart(chart_str, records_collection, doc_folder, tag):
+def generate_chart(chart_str, db, doc_folder, tag):
     chart = yaml.safe_load(chart_str)
     pipeline = chart.get('pipeline')
     title = chart.get('title')
     fill = chart.get('fill') or False
     axes = chart.get('axes') or dict(x='x', y='y')
+
+    collection_name = chart.get('collection') or 'records'
+    collection = db.get_collection(collection_name)
 
     LOG.debug('Title: %s', title)
 
@@ -47,7 +50,7 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
     if tag:
         pipeline.insert(0, {'$match': {'tag': tag}})
 
-    chart_data = records_collection.aggregate(pipeline)
+    chart_data = collection.aggregate(pipeline)
 
     lines = collections.defaultdict(list)
 
@@ -66,7 +69,7 @@ def generate_chart(chart_str, records_collection, doc_folder, tag):
         for k in y_keys:
             lines[k].append((chart_rec['x'], chart_rec[k]))
         table += ('   *\n' +
-                  '\n'.join('     - %.1f' % chart_rec[v]
+                  '\n'.join('     - %.1f' % (chart_rec[v] or 0)
                             for v in sorted(axes.keys())) +
                   '\n')
 
@@ -112,8 +115,6 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     mongo_client = pymongo.MongoClient(**connection_params)
     db = mongo_client.get_database(db_name)
 
-    records_collection = db.get_collection('records')
-
     report_definition = scenario['report']
     report_template = report_definition['template']
 
@@ -124,7 +125,7 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     jinja_env = jinja2.Environment()
     jinja_env.filters['chart'] = functools.partial(
         generate_chart,
-        records_collection=records_collection,
+        db=db,
         doc_folder=doc_folder,
         tag=tag)
 
