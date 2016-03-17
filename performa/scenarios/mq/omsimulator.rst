@@ -60,9 +60,9 @@ depending on number of concurrent threads.
     pipeline:
     - { $match: { task: omsimulator, mode: call }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
-                  msg_sent_per_sec: { $avg: { $divide: ["$client.count", "$client.duration"] }},
-                  msg_received_per_sec: { $avg: { $divide: ["$server.count", "$server.duration"] }},
-                  msg_round_trip_per_sec: { $avg: { $divide: ["$round_trip.count", "$round_trip.duration"] }},
+                  msg_sent_per_sec: { $sum: { $divide: ["$client.count", "$client.duration"] }},
+                  msg_received_per_sec: { $sum: { $divide: ["$server.count", "$server.duration"] }},
+                  msg_round_trip_per_sec: { $sum: { $divide: ["$round_trip.count", "$round_trip.duration"] }},
                   latency: { $avg: "$round_trip.latency" },
                   rabbit_total: { $avg: "$rabbit_total" }
                 }}
@@ -129,8 +129,8 @@ depending on number of concurrent threads.
     pipeline:
     - { $match: { task: omsimulator, mode: cast }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
-                  msg_sent_per_sec: { $avg: { $divide: ["$client.count", "$client.duration"] }},
-                  msg_received_per_sec: { $avg: { $divide: ["$server.count", "$server.duration"] }},
+                  msg_sent_per_sec: { $sum: { $divide: ["$client.count", "$client.duration"] }},
+                  msg_received_per_sec: { $sum: { $divide: ["$server.count", "$server.duration"] }},
                   latency: { $avg: "$server.latency" },
                   rabbit_total: { $avg: "$rabbit_total" }
                 }}
@@ -196,8 +196,8 @@ depending on number of concurrent threads.
     pipeline:
     - { $match: { task: omsimulator, mode: notify }}
     - { $group: { _id: { threads: { $multiply: [ "$threads", "$host_count" ] } },
-                  msg_sent_per_sec: { $avg: { $divide: ["$client.count", "$client.duration"] }},
-                  msg_received_per_sec: { $avg: { $divide: ["$server.count", "$server.duration"] }},
+                  msg_sent_per_sec: { $sum: { $divide: ["$client.count", "$client.duration"] }},
+                  msg_received_per_sec: { $sum: { $divide: ["$server.count", "$server.duration"] }},
                   latency: { $avg: "$server.latency" },
                   rabbit_total: { $avg: "$rabbit_total" }
                 }}
