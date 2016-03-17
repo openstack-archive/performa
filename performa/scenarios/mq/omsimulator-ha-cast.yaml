@@ -38,6 +38,7 @@ execution:
         mode: cast
         duration: 100
         threads: 1
+        host_count: 1
         url: {{ rabbit_url }}
 
 report:
