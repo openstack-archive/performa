@@ -117,6 +117,8 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     report_definition = scenario['report']
     report_template = report_definition['template']
 
+    LOG.info('Using report template: %s', report_template)
+
     _make_dir(doc_folder)
 
     jinja_env = jinja2.Environment()
@@ -137,6 +139,15 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     LOG.info('The report is written to %s', doc_folder)
 
 
+def resolve_vars(scenario_template, vars):
+    jinja_env = jinja2.Environment()
+
+    compiled_template = jinja_env.from_string(scenario_template)
+    rendered_template = compiled_template.render(vars)
+
+    return rendered_template
+
+
 def main():
     utils.init_config_and_logging(config.MAIN_OPTS)
 
@@ -144,7 +155,9 @@ def main():
         cfg.CONF.scenario,
         alias_mapper=lambda f: config.SCENARIOS + '%s.yaml' % f)
 
-    scenario = utils.read_yaml_file(scenario_file_path)
+    scenario_raw = utils.read_file(scenario_file_path)
+    scenario_raw = resolve_vars(scenario_raw, cfg.CONF.vars)
+    scenario = yaml.safe_load(scenario_raw)
     base_dir = os.path.dirname(scenario_file_path)
 
     generate_report(scenario, base_dir, cfg.CONF.mongo_url, cfg.CONF.mongo_db,

@@ -1,9 +1,9 @@
 #!/usr/bin/python
 import copy
 import os
-import tempfile
-
+import random
 import signal
+import tempfile
 
 SERVER_PID = os.path.join(tempfile.gettempdir(), 'performa.oms.pid')
 SERVER_FILE_NAME = os.path.join(tempfile.gettempdir(), 'performa.oms.srv')
@@ -104,16 +104,20 @@ def run(module):
         client_tool = 'rpc-client'
 
     params['python'] = PYTHON
+    # todo: fix topic support in omsimulator
+    # params['topic'] = 'performa-%d' % (random.random() * 1000000)
     params['server_tool'] = server_tool
     params['client_tool'] = client_tool
     params['server_file'] = SERVER_FILE_NAME
     params['client_file'] = CLIENT_FILE_NAME
 
     server = ('%(python)s simulator.py '
+              # '--topic %(topic)s '
               '--url %(url)s '
               '--json %(server_file)s '
               '%(server_tool)s ') % params
     client = ('%(python)s simulator.py '
+              # '--topic %(topic)s '
               '--url=%(url)s '
               '--json %(client_file)s '
               '-l %(duration)s '

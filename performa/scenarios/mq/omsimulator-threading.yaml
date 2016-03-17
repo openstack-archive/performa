@@ -47,7 +47,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50, 100 ]
+      threads: [ 1, 2, 5, 10, 20, 50 ]
     tasks:
     - omsimulator:
         mode: call
@@ -56,7 +56,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50, 100 ]
+      threads: [ 1, 2, 5, 10, 20, 50 ]
     tasks:
     - omsimulator:
         mode: cast
@@ -65,7 +65,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50, 100 ]
+      threads: [ 1, 2, 5, 10, 20, 50 ]
     tasks:
     - omsimulator:
         mode: notify
@@ -89,4 +89,4 @@ aggregation:
         - { $group: { _id: null, rabbit_sys: { $avg: "$sys" }, rabbit_user: { $avg: "$user" }, rabbit_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
 
 report:
-  template: omsimulator-threading.rst
+  template: omsimulator.rst

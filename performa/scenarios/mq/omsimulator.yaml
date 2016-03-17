@@ -4,62 +4,82 @@ description:
   This scenario uses oslo.messaging simulator tool to execute MQ test plan.
 
 parameters:
-  target: List of hosts were omsimulator will be executed
+  tester_hosts: List of hosts were omsimulator will be executed
+  rabbit_hosts: List of hosts were RabbitMQ runs
+  rabbit_url: RabbitMQ address
 
 setup:
   -
-    hosts: {{ target }}
+    hosts: {{ tester_hosts }}
     tasks:
     - apt: name=git
       become: yes
-#    - name: installing omsimulator
-#      git: repo=git://git.openstack.org/openstack/oslo.messaging
-#           dest=/tmp/performa/oslo.messaging
-#    - name: installing omsimulator
-#      git: repo=git://git.openstack.org/openstack/oslo.messaging
-#           dest=/tmp/performa/oslo.messaging
-#    - command: git fetch https://review.openstack.org/openstack/oslo.messaging refs/changes/91/291191/2
-#      args:
-#        chdir: /tmp/performa/oslo.messaging
-#    - command: git checkout FETCH_HEAD
-#      args:
-#        chdir: /tmp/performa/oslo.messaging
-#    - apt: name=atop
-#      become: yes
-#    - apt: name=daemon
-#      become: yes
+    - apt: name=daemon
+      become: yes
+    - name: installing omsimulator
+      git: repo=git://git.openstack.org/openstack/oslo.messaging
+           dest=/tmp/performa/oslo.messaging
+    - apt: name=python-dev
+      become: yes
+    - apt: name=python-pip
+      become: yes
+    - pip: name=virtualenv
+      become: yes
+    - pip: requirements=/tmp/performa/oslo.messaging/requirements.txt virtualenv=/tmp/performa/oslo.messaging/.venv
+    - pip: name=eventlet virtualenv=/tmp/performa/oslo.messaging/.venv
+    - command: /tmp/performa/oslo.messaging/.venv/bin/python setup.py install
+      args:
+        chdir: /tmp/performa/oslo.messaging
+  -
+    hosts: {{ rabbit_hosts }}
+    tasks:
+    - apt: name=atop
+      become: yes
+    - apt: name=daemon
+      become: yes
+
 
 execution:
   -
-    hosts: {{ target }}
+    hosts: {{ rabbit_hosts }}
     tasks:
     - atop: command=start
-#  -
-#    hosts: {{ target }}
-#    matrix:
-#      threads: [ 1, 2, 5, 10, 25, 50, 100 ]
-#    tasks:
-#    - omsimulator:
-#        mode: call
-#        duration: 10
-#        url: "rabbit://stackrabbit:swordfish@localhost:5672/"
   -
-    hosts: {{ target }}
+    hosts: {{ tester_hosts }}
     matrix:
-      host_count: [ 1 ]
-      threads: [ 1, 10, 100 ]
+      host_count: [ 1, 2, 5, 10 ]
     tasks:
     - omsimulator:
         mode: call
-        duration: 10
+        duration: 100
         threads: 10
         url: {{ rabbit_url }}
   -
-    hosts: {{ target }}
+    hosts: {{ tester_hosts }}
+    matrix:
+      host_count: [ 1, 2, 5, 10 ]
+    tasks:
+    - omsimulator:
+        mode: cast
+        duration: 100
+        threads: 10
+        url: {{ rabbit_url }}
+  -
+    hosts: {{ tester_hosts }}
+    matrix:
+      host_count: [ 1, 2, 5, 10 ]
+    tasks:
+    - omsimulator:
+        mode: notify
+        duration: 100
+        threads: 10
+        url: {{ rabbit_url }}
+  -
+    hosts: {{ rabbit_hosts }}
     tasks:
     - atop:
         command: stop
-        labels: [ CPU, PRC, PRM ]
+        labels: [ PRC ]
 
 aggregation:
   -
@@ -68,7 +88,7 @@ aggregation:
         { task: omsimulator }
       values:
         pipeline:
-        - { $match: { task: atop, status: OK, label: PRC, name: beam.smp }}
+        - { $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* } }}
         - { $group: { _id: null, rabbit_sys: { $avg: "$sys" }, rabbit_user: { $avg: "$user" }, rabbit_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
 
 report:
