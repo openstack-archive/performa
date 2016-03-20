@@ -61,16 +61,24 @@ def generate_chart(chart_str, db, doc_folder, tag):
    *
 ''' % dict(title=title)
 
-    table += ''.join(('     - %s\n' % axes[k]) for k in sorted(axes.keys()))
+    axes_keys = sorted(axes.keys())
+
+    table += ''.join(('     - %s\n' % axes[k]) for k in axes_keys)
 
     y_keys = set(axes.keys()) ^ set('x')
 
     for chart_rec in chart_data:
         for k in y_keys:
             lines[k].append((chart_rec['x'], chart_rec[k]))
+
+        values = []
+        for v in axes_keys:
+            cv = chart_rec[v] or 0
+            patt = '     - %%%s' % ('d' if isinstance(cv, int) else '.1f')
+            values.append(patt % cv)
+
         table += ('   *\n' +
-                  '\n'.join('     - %.1f' % (chart_rec[v] or 0)
-                            for v in sorted(axes.keys())) +
+                  '\n'.join(values) +
                   '\n')
 
     xy_chart = pygal.XY(style=style.RedBlueStyle,
@@ -92,6 +100,47 @@ def generate_chart(chart_str, db, doc_folder, tag):
     doc += table
 
     return doc
+
+
+def generate_info(definition_str, db, doc_folder, tag):
+    definition = yaml.safe_load(definition_str)
+    pipeline = definition.get('pipeline')
+    title = definition.get('title')
+    fields = definition.get('fields')
+
+    collection_name = definition.get('collection') or 'records'
+    collection = db.get_collection(collection_name)
+
+    LOG.debug('Title: %s', title)
+
+    pipeline.insert(0, {'$match': {'status': 'OK'}})
+
+    if tag:
+        pipeline.insert(0, {'$match': {'tag': tag}})
+
+    data = [r for r in collection.aggregate(pipeline)]
+    if not data:
+        LOG.warning('No data returned for info block: %s', title)
+        return '**No data**'
+
+    data = data[0]
+
+    table = '''
+.. list-table::
+   :header-rows: 1
+
+   *
+     - attribute
+     - value
+'''
+
+    for field_name, field_title in sorted(fields.items(), key=lambda a: a[0]):
+        value = data[field_name]
+        patt = ('''   *\n     - %%s\n     - %%%s\n''' %
+                ('d' if isinstance(value, int) else '.1f'))
+        table += patt % (field_title, value)
+
+    return table
 
 
 def _make_dir(name):
@@ -125,6 +174,11 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     jinja_env = jinja2.Environment()
     jinja_env.filters['chart'] = functools.partial(
         generate_chart,
+        db=db,
+        doc_folder=doc_folder,
+        tag=tag)
+    jinja_env.filters['info'] = functools.partial(
+        generate_info,
         db=db,
         doc_folder=doc_folder,
         tag=tag)
