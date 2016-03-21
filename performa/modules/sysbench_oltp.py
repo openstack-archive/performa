@@ -45,6 +45,7 @@ def parse_sysbench_oltp(raw):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
+            mode=dict(default='run'),
             threads=dict(type='int', default=10),
             duration=dict(type='int', default=10),
             mysql_host=dict(default='localhost'),

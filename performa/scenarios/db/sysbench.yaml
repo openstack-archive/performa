@@ -4,38 +4,44 @@ description:
   This scenario uses sysbench to execute DB test plan.
 
 parameters:
-  target: List of hosts were omsimulator will be executed
+  tester_hosts: List of hosts were omsimulator will be executed
+  mysql_hosts: List of hosts were MySQL runs
 
 setup:
   -
-    hosts: {{ target }}
+    hosts: {{ tester_hosts }}
     tasks:
     - name: installing sysbench
       apt: name=sysbench
       become: yes
-    - name: installing atop
-      apt:
-        name: atop, daemon
-      become: yes
   -
-    hosts: {{ target }}
+    hosts: {{ mysql_hosts }}
     tasks:
-    - atop: command=start
+    - apt: name=atop
+      become: yes
+    - apt: name=daemon
+      become: yes
 
 execution:
   -
-    hosts: {{ target }}
+    hosts: {{ mysql_hosts }}
+    tasks:
+    - atop: command=start
+  -
+    hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 10, 20, 30, 40, 50, 60 ]
+      threads: [ 10, 20, 50, 70, 100, 150, 200, 300 ]
     tasks:
     - sysbench_oltp:
-        duration: 10
+        duration: 60
+        mysql_host: localhost
+        mysql_db: sbtest
   -
-    hosts: {{ target }}
+    hosts: {{ mysql_hosts }}
     tasks:
     - atop:
         command: stop
-        labels: [ CPU, PRC, PRM ]
+        labels: [ PRC ]
 
 aggregation:
   -
