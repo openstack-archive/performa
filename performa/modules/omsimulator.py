@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import copy
 import os
-import random
 import signal
 import tempfile
 
@@ -147,8 +146,8 @@ def run(module):
         client_summary = client_data['summary']['client']
 
         record = dict(start=client_summary['start'],
-                       end=client_summary['end'],
-                       client=client_summary)
+                      end=client_summary['end'],
+                      client=client_summary)
 
         if 'round_trip' in client_data['summary']:
             round_trip_summary = client_data['summary']['round_trip']

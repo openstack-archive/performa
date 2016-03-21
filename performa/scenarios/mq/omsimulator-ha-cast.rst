@@ -5,8 +5,8 @@ This report is result of `message_queue_performance`_ execution
 with `Oslo.messaging Simulator`_
 
 
-RPC CAST failover throughput test
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RPC CAST fail-over throughput test
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Summary**
 
@@ -30,6 +30,32 @@ RPC CAST failover throughput test
 ''' | info
 }}
 
+**Message flow**
+
+{{'''
+    title: RPC CAST message flow
+    axes:
+      x: time
+      y1: sent, msg
+      y2: received, msg
+      y3: latency, ms
+    chart: line
+    collection: series
+    pipelines:
+    -
+      - $match: { task: omsimulator, mode: cast, name: client_0 }
+      - $project:
+          x: "$timestamp"
+          y1: "$count"
+    -
+      - $match: { task: omsimulator, mode: cast, name: server }
+      - $project:
+          x: "$timestamp"
+          y2: "$count"
+          y3: { $multiply: ["$latency", 1000] }
+''' | chart
+}}
+
 
 **Messages sent by the client**
 
@@ -41,12 +67,11 @@ RPC CAST failover throughput test
     chart: line
     collection: series
     pipeline:
-    - { $match: { task: omsimulator, mode: cast, name: client_0 }}
-    - { $project: { x: "$seq",
-                    y: "$count"
-                  }}
-    - { $sort: { x: 1 }}
-''' | chart
+    - $match: { task: omsimulator, mode: cast, name: client_0 }
+    - $project:
+        x: "$seq"
+        y: "$count"
+''' | chart_and_table
 }}
 
 **Messages received by the server**
@@ -60,11 +85,10 @@ RPC CAST failover throughput test
     chart: line
     collection: series
     pipeline:
-    - { $match: { task: omsimulator, mode: cast, name: server }}
-    - { $project: { x: "$seq",
-                    y: "$count",
-                    y2: { $multiply: ["$latency", 1000] }
-                  }}
-    - { $sort: { x: 1 }}
-''' | chart
+    - $match: { task: omsimulator, mode: cast, name: server }
+    - $project:
+        x: "$seq",
+        y: "$count"
+        y2: { $multiply: ["$latency", 1000] }
+''' | chart_and_table
 }}

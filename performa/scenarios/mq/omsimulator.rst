@@ -38,7 +38,7 @@ received by the client. Also the number of lost messages is calculated.
                     y4: "$lost"
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 
@@ -74,7 +74,7 @@ depending on number of concurrent threads.
                     y5: { $multiply: [ "$rabbit_total", 100 ] }
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 
@@ -108,7 +108,7 @@ messages is calculated.
                     y3: "$lost"
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 
@@ -141,7 +141,7 @@ depending on number of concurrent threads.
                     y4: { $multiply: [ "$rabbit_total", 100 ] }
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 
@@ -175,7 +175,7 @@ messages is calculated.
                     y3: "$lost"
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 
@@ -208,7 +208,7 @@ depending on number of concurrent threads.
                     y4: { $multiply: [ "$rabbit_total", 100 ] }
                   }}
     - { $sort: { x: 1 }}
-''' | chart
+''' | chart_and_table
 }}
 
 .. references:

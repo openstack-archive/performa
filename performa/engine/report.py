@@ -33,24 +33,45 @@ from performa.engine import utils
 LOG = logging.getLogger(__name__)
 
 
-def generate_chart(chart_str, db, doc_folder, tag):
+def generate_chart(chart_str, db, doc_folder, tag,
+                   show_chart=True, show_table=True):
     chart = yaml.safe_load(chart_str)
-    pipeline = chart.get('pipeline')
+    pipeline = chart.get('pipeline')  # single pipeline
+    pipelines = chart.get('pipelines')  # multiple pipelines
     title = chart.get('title')
     fill = chart.get('fill') or False
     axes = chart.get('axes') or dict(x='x', y='y')
+    do_round = show_table
 
     collection_name = chart.get('collection') or 'records'
     collection = db.get_collection(collection_name)
 
     LOG.debug('Title: %s', title)
 
-    pipeline.insert(0, {'$match': {'status': 'OK'}})
+    axes_keys = sorted(axes.keys())
+    y_keys = set(axes.keys()) ^ set('x')
 
-    if tag:
-        pipeline.insert(0, {'$match': {'tag': tag}})
+    chart_data = collections.defaultdict(dict)
 
-    chart_data = collection.aggregate(pipeline)
+    for pl in (pipelines or [pipeline]):
+        pl.insert(0, {'$match': {'status': 'OK'}})
+
+        if tag:
+            pl.insert(0, {'$match': {'tag': tag}})
+
+        data = collection.aggregate(pl)
+
+        for rec in data:
+            if do_round:
+                x = int(round(rec['x']))
+            else:
+                x = rec['x']
+
+            column = chart_data[x]
+            column['x'] = x
+
+            for k in y_keys:
+                column[k] = column.get(k) or rec.get(k)
 
     lines = collections.defaultdict(list)
 
@@ -61,20 +82,17 @@ def generate_chart(chart_str, db, doc_folder, tag):
    *
 ''' % dict(title=title)
 
-    axes_keys = sorted(axes.keys())
-
     table += ''.join(('     - %s\n' % axes[k]) for k in axes_keys)
 
-    y_keys = set(axes.keys()) ^ set('x')
-
-    for chart_rec in chart_data:
+    for _, chart_rec in sorted(chart_data.items(), key=lambda a: a[0]):
         for k in y_keys:
-            lines[k].append((chart_rec['x'], chart_rec[k]))
+            if chart_rec[k]:
+                lines[k].append((chart_rec['x'], chart_rec[k]))
 
         values = []
         for v in axes_keys:
-            cv = chart_rec[v] or 0
-            patt = '     - %%%s' % ('d' if isinstance(cv, int) else '.1f')
+            cv = '.' if chart_rec[v] is None else chart_rec[v]
+            patt = '     - %%%s' % ('.1f' if isinstance(cv, float) else 's')
             values.append(patt % cv)
 
         table += ('   *\n' +
@@ -96,8 +114,12 @@ def generate_chart(chart_str, db, doc_folder, tag):
     abs_chart_filename = '%s.svg' % os.path.join(doc_folder, chart_filename)
     xy_chart.render_to_file(abs_chart_filename)
 
-    doc = '.. image:: %s.*\n\n' % chart_filename
-    doc += table
+    doc = ''
+    if show_chart:
+        doc += '.. image:: %s.*\n\n' % chart_filename
+
+    if show_table:
+        doc += table
 
     return doc
 
@@ -172,11 +194,23 @@ def generate_report(scenario, base_dir, mongo_url, db_name, doc_folder,
     _make_dir(doc_folder)
 
     jinja_env = jinja2.Environment()
-    jinja_env.filters['chart'] = functools.partial(
+    jinja_env.filters['chart_and_table'] = functools.partial(
         generate_chart,
         db=db,
         doc_folder=doc_folder,
         tag=tag)
+    jinja_env.filters['chart'] = functools.partial(
+        generate_chart,
+        db=db,
+        doc_folder=doc_folder,
+        tag=tag,
+        show_table=False)
+    jinja_env.filters['table'] = functools.partial(
+        generate_chart,
+        db=db,
+        doc_folder=doc_folder,
+        tag=tag,
+        show_chart=False)
     jinja_env.filters['info'] = functools.partial(
         generate_info,
         db=db,
