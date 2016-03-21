@@ -87,7 +87,7 @@ RPC CAST fail-over throughput test
     pipeline:
     - $match: { task: omsimulator, mode: cast, name: server }
     - $project:
-        x: "$seq",
+        x: "$seq"
         y: "$count"
         y2: { $multiply: ["$latency", 1000] }
 ''' | chart_and_table
