@@ -121,6 +121,8 @@ def run(module):
               '--json %(client_file)s '
               '-l %(duration)s '
               '%(client_tool)s '
+              '--timeout %(timeout)s '
+              '-w %(sending_delay)s '
               '-p %(threads)s ') % params
 
     if params['mode'] == 'cast':
@@ -153,6 +155,10 @@ def run(module):
             round_trip_summary = client_data['summary']['round_trip']
             record['round_trip'] = round_trip_summary
 
+        if 'error' in client_data['summary']:
+            error_summary = client_data['summary']['error']
+            record['error'] = error_summary
+
         server_summary = server_data['summary']
         record['server'] = server_summary
 
@@ -174,6 +180,8 @@ def main():
             url=dict(required=True),
             threads=dict(type='int', default=10),
             duration=dict(type='int', default=10),
+            timeout=dict(type='int', default=5),
+            sending_delay=dict(type='float', default=-1.0),
         ))
 
     chdir(module)

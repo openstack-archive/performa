@@ -158,8 +158,10 @@ def generate_info(definition_str, db, doc_folder, tag):
 
     for field_name, field_title in sorted(fields.items(), key=lambda a: a[0]):
         value = data[field_name]
+        if value is None:
+            value = '.'
         patt = ('''   *\n     - %%s\n     - %%%s\n''' %
-                ('d' if isinstance(value, int) else '.1f'))
+                ('.1f' if isinstance(value, float) else 's'))
         table += patt % (field_title, value)
 
     return table
