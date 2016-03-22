@@ -86,7 +86,7 @@ def generate_chart(chart_str, db, doc_folder, tag,
 
     for _, chart_rec in sorted(chart_data.items(), key=lambda a: a[0]):
         for k in y_keys:
-            if chart_rec[k]:
+            if chart_rec[k] is not None:
                 lines[k].append((chart_rec['x'], chart_rec[k]))
 
         values = []
