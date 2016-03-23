@@ -6,8 +6,8 @@ description:
 parameters:
   tester_hosts: List of hosts were omsimulator will be executed
   rabbit_url: RabbitMQ address used by both server and client
-  client_url: RabbitMQ address used by the client
-  server_url: RabbitMQ address used by the server
+  client_url: Override RabbitMQ address for the client
+  server_url: Override RabbitMQ address for the server
 
 setup:
   -

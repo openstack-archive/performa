@@ -180,7 +180,7 @@ def main():
         argument_spec=dict(
             mode=dict(required=True,
                       choices=['call', 'cast', 'fanout', 'notify']),
-            url=dict(required=True),
+            url=dict(),
             client_url=dict(),
             server_url=dict(),
             threads=dict(type='int', default=10),
