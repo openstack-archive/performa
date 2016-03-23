@@ -110,11 +110,14 @@ def run(module):
     params['server_file'] = SERVER_FILE_NAME
     params['client_file'] = CLIENT_FILE_NAME
 
+    params['url'] = params['server_url'] or params['url']
     server = ('%(python)s simulator.py '
               # '--topic %(topic)s '
               '--url %(url)s '
               '--json %(server_file)s '
               '%(server_tool)s ') % params
+
+    params['url'] = params['client_url'] or params['url']
     client = ('%(python)s simulator.py '
               # '--topic %(topic)s '
               '--url=%(url)s '
@@ -178,6 +181,8 @@ def main():
             mode=dict(required=True,
                       choices=['call', 'cast', 'fanout', 'notify']),
             url=dict(required=True),
+            client_url=dict(),
+            server_url=dict(),
             threads=dict(type='int', default=10),
             duration=dict(type='int', default=10),
             timeout=dict(type='int', default=5),
