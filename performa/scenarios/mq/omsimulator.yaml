@@ -87,7 +87,7 @@ execution:
     tasks:
     - atop:
         command: stop
-        labels: [ PRC, PRM ]
+        labels: [ PRC ]
 
 aggregation:
   -
@@ -98,14 +98,6 @@ aggregation:
         pipeline:
         - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[0] }} }
         - $group: { _id: null, rabbit_sys_0: { $avg: "$sys" }, rabbit_user_0: { $avg: "$user" }, rabbit_total_0: { $avg: { $add: [ "$sys", "$user" ] }} }
-  -
-    update:
-      query:
-        { task: omsimulator }
-      values:
-        pipeline:
-        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[0] }} }
-        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
 
 {% if rabbit_hosts[1] %}
   -
@@ -116,14 +108,6 @@ aggregation:
         pipeline:
         - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[1] }} }
         - $group: { _id: null, rabbit_sys_1: { $avg: "$sys" }, rabbit_user_1: { $avg: "$user" }, rabbit_total_1: { $avg: { $add: [ "$sys", "$user" ] }} }
-  -
-    update:
-      query:
-        { task: omsimulator }
-      values:
-        pipeline:
-        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[1] }} }
-        - $group: { _id: null, rabbit_resident_1: { $avg: "$resident" } }
 {% endif %}
 
 {% if rabbit_hosts[2] %}
@@ -135,14 +119,6 @@ aggregation:
         pipeline:
         - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[2] }} }
         - $group: { _id: null, rabbit_sys_2: { $avg: "$sys" }, rabbit_user_2: { $avg: "$user" }, rabbit_total_2: { $avg: { $add: [ "$sys", "$user" ] }} }
-  -
-    update:
-      query:
-        { task: omsimulator }
-      values:
-        pipeline:
-        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[2] }} }
-        - $group: { _id: null, rabbit_resident_2: { $avg: "$resident" } }
 {% endif %}
 
 report:

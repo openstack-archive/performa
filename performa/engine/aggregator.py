@@ -52,11 +52,9 @@ def aggregate(scenario, mongo_url, db_name, tag):
                     stop = rec['end']  # todo rename field into 'stop'
 
                     series_pipeline = [
-                        {'$match': {'$and': [
-                            {'tag': tag},
-                            {'timestamp': {'$gte': start}},
-                            {'timestamp': {'$lte': stop}}
-                        ]}}
+                        {'$match': {
+                            'tag': tag,
+                            'timestamp': {'$gte': start, '$lte': stop}}}
                     ]
                     series_pipeline.extend(values_pipeline)
 
