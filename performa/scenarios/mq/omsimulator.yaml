@@ -49,7 +49,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      host_count: [ 1, 2, 5, 10 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: call
@@ -61,7 +61,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      host_count: [ 1, 2, 5, 10 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: cast
@@ -73,7 +73,7 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      host_count: [ 1, 2, 5, 10 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: notify
@@ -87,7 +87,7 @@ execution:
     tasks:
     - atop:
         command: stop
-        labels: [ PRC ]
+        labels: [ PRC, PRM ]
 
 aggregation:
   -
@@ -96,8 +96,54 @@ aggregation:
         { task: omsimulator }
       values:
         pipeline:
-        - { $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* } }}
-        - { $group: { _id: null, rabbit_sys: { $avg: "$sys" }, rabbit_user: { $avg: "$user" }, rabbit_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
+        - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[0] }} }
+        - $group: { _id: null, rabbit_sys_0: { $avg: "$sys" }, rabbit_user_0: { $avg: "$user" }, rabbit_total_0: { $avg: { $add: [ "$sys", "$user" ] }} }
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[0] }} }
+        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
+
+{% if rabbit_hosts[1] %}
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[1] }} }
+        - $group: { _id: null, rabbit_sys_1: { $avg: "$sys" }, rabbit_user_1: { $avg: "$user" }, rabbit_total_1: { $avg: { $add: [ "$sys", "$user" ] }} }
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[1] }} }
+        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
+{% endif %}
+
+{% if rabbit_hosts[2] %}
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - $match: { task: atop, status: OK, label: PRC, name: { $regex: beam.* }, host: {{ rabbit_hosts[2] }} }
+        - $group: { _id: null, rabbit_sys_2: { $avg: "$sys" }, rabbit_user_2: { $avg: "$user" }, rabbit_total_2: { $avg: { $add: [ "$sys", "$user" ] }} }
+  -
+    update:
+      query:
+        { task: omsimulator }
+      values:
+        pipeline:
+        - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[2] }} }
+        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
+{% endif %}
 
 report:
   template: omsimulator.rst

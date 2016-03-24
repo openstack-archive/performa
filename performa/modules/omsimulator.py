@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import copy
+import multiprocessing
 import os
 import signal
 import tempfile
@@ -11,64 +12,12 @@ UNIQUE_NAME = 'performa_omsimulator'
 DIR = '/tmp/performa/oslo.messaging/tools/'
 PYTHON = '/tmp/performa/oslo.messaging/.venv/bin/python'
 
-PATTERNS = [
-    r'(?P<msg_sent>\d+) messages were sent for (?P<duration>\d+) sec',
-    r'(?P<bytes_sent>\d+) bytes were sent for',
-]
-TRANSFORM_FIELDS = {
-    'msg_sent': int,
-    'bytes_sent': int,
-    'duration': int,
-}
-
-
-def parse_output(raw):
-    result = {}
-
-    for pattern in PATTERNS:
-        for parsed in re.finditer(pattern, raw):
-            result.update(parsed.groupdict())
-
-    for k in result.keys():
-        if k in TRANSFORM_FIELDS:
-            result[k] = TRANSFORM_FIELDS[k](result[k])
-
-    result['msg_sent_bandwidth'] = (result.get('msg_sent', 0) /
-                                    result.get('duration', 1))
-    result['bytes_sent_bandwidth'] = (result.get('bytes_sent', 0) /
-                                      result.get('duration', 1))
-
-    return result
-
 
 def chdir(module):
     try:
         os.chdir(DIR)
     except Exception as e:
         module.fail_json(msg='Failed to change dir to %s: %s' % (DIR, e))
-
-
-def start_daemon(module, cmd):
-    cmd = ('daemon -n %(name)s -D %(dir)s -F %(pid)s -U -- %(cmd)s' %
-           dict(name=UNIQUE_NAME, dir=DIR, pid=SERVER_PID, cmd=cmd))
-
-    rc, stdout, stderr = module.run_command(cmd)
-    result = dict(changed=True, rc=rc, stdout=stdout, stderr=stderr, cmd=cmd)
-
-    if rc:
-        module.fail_json(msg='Failed to start omsimulator', **result)
-
-
-def stop_daemon(module):
-    rc, stdout, stderr = module.run_command('/bin/cat %s' % SERVER_PID)
-
-    if rc:
-        return
-
-    rc, stdout, stderr = module.run_command('pgrep -P %s' % stdout)
-    os.kill(int(stdout), signal.SIGINT)
-
-    time.sleep(2)
 
 
 def read_file(filename):
@@ -92,35 +41,16 @@ def transform_series(series):
     return result
 
 
-def run(module):
-    params = copy.deepcopy(module.params)
+def make_file_name(base, index):
+    return '%s-%s' % (base, index)
 
-    if params['mode'] == 'notify':
-        server_tool = 'notify-server'
-        client_tool = 'notify-client'
-    else:
-        server_tool = 'rpc-server'
-        client_tool = 'rpc-client'
 
-    params['python'] = PYTHON
-    # todo: fix topic support in omsimulator
-    # params['topic'] = 'performa-%d' % (random.random() * 1000000)
-    params['server_tool'] = server_tool
-    params['client_tool'] = client_tool
-    params['server_file'] = SERVER_FILE_NAME
-    params['client_file'] = CLIENT_FILE_NAME
-
-    params['url'] = params['server_url'] or params['url']
-    server = ('%(python)s simulator.py '
-              # '--topic %(topic)s '
-              '--url %(url)s '
-              '--json %(server_file)s '
-              '%(server_tool)s ') % params
-
+def make_client_cmd(params, i):
+    params['client_file'] = make_file_name(CLIENT_FILE_NAME, i)
     params['url'] = params['client_url'] or params['url']
+
     client = ('%(python)s simulator.py '
-              # '--topic %(topic)s '
-              '--url=%(url)s '
+              '--url %(url)s '
               '--json %(client_file)s '
               '-l %(duration)s '
               '%(client_tool)s '
@@ -134,45 +64,121 @@ def run(module):
     if params['mode'] == 'fanout':
         client += '--is-fanout True '
 
-    start_daemon(module, server)
+    return client
 
-    rc, stdout, stderr = module.run_command(client)
 
-    if rc:
-        module.fail_json(msg='Failed to start omsimulator',
-                         stderr=stderr, rc=rc, cmd=client)
+def make_server_cmd(params, i):
+    params['server_file'] = make_file_name(SERVER_FILE_NAME, i)
+    params['url'] = params['server_url'] or params['url']
 
-    stop_daemon(module)
+    server = ('%(python)s simulator.py '
+              '--url %(url)s '
+              '--json %(server_file)s '
+              '%(server_tool)s ') % params
 
-    try:
-        client_data = read_file(CLIENT_FILE_NAME)
-        server_data = read_file(SERVER_FILE_NAME)
+    return server
+
+
+def run_client(module, command):
+    module.run_command(command)
+
+
+def run_client_pool(module, params):
+    processes = []
+
+    for i in range(params['processes']):
+        cmd = make_client_cmd(params, i)
+        p = multiprocessing.Process(target=run_client, args=(module, cmd))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
+
+
+def run_server(module, command):
+    module.run_command(command)
+
+
+def start_server_pool(module, params):
+    processes = []
+
+    for i in range(params['processes']):
+        cmd = make_server_cmd(params, i)
+        p = multiprocessing.Process(target=run_client, args=(module, cmd))
+        processes.append(p)
+        p.start()
+
+    return processes
+
+
+def stop_server_pool(module, processes):
+    for p in processes:
+        rc, stdout, stderr = module.run_command('pgrep -P %s' % p.pid)
+
+        for child in (int(p) for p in stdout.split('\n') if p):
+            os.kill(child, signal.SIGINT)
+
+    time.sleep(3)  # let simulators handle the signal
+
+    for p in processes:
+        os.kill(p.pid, signal.SIGINT)
+        p.join()
+
+
+def collect_results(params):
+    result = dict(records=[], series=[])
+
+    for i in range(params['processes']):
+        client_data = read_file(make_file_name(CLIENT_FILE_NAME, i))
+        server_data = read_file(make_file_name(SERVER_FILE_NAME, i))
 
         client_summary = client_data['summary']['client']
-
-        record = dict(start=client_summary['start'],
-                      end=client_summary['end'],
+        record = dict(start=client_summary['start'], end=client_summary['end'],
                       client=client_summary)
-
         if 'round_trip' in client_data['summary']:
             round_trip_summary = client_data['summary']['round_trip']
             record['round_trip'] = round_trip_summary
-
         if 'error' in client_data['summary']:
             error_summary = client_data['summary']['error']
             record['error'] = error_summary
-
         server_summary = server_data['summary']
         record['server'] = server_summary
-
         series = transform_series(client_data['series'])
         series.extend(transform_series(server_data['series']))
 
-        result = dict(records=[record], series=series)
+        result['records'].append(record)
+        result['series'] += series
+
+    return result
+
+
+def run(module):
+    params = copy.deepcopy(module.params)
+
+    if params['mode'] == 'notify':
+        server_tool = 'notify-server'
+        client_tool = 'notify-client'
+    else:
+        server_tool = 'rpc-server'
+        client_tool = 'rpc-client'
+
+    params['python'] = PYTHON
+    params['server_tool'] = server_tool
+    params['client_tool'] = client_tool
+
+    server_processes = start_server_pool(module, params)
+
+    run_client_pool(module, params)
+
+    stop_server_pool(module, server_processes)
+
+    try:
+        result = collect_results(params)
         module.exit_json(**result)
     except Exception as e:
         msg = 'Failed to read omsimulator output: %s' % e
-        module.fail_json(msg=msg, rc=rc, stderr=stderr, stdout=stdout)
+        module.fail_json(msg=msg)
 
 
 def main():
@@ -184,6 +190,7 @@ def main():
             client_url=dict(),
             server_url=dict(),
             threads=dict(type='int', default=10),
+            processes=dict(type='int', default=1),
             duration=dict(type='int', default=10),
             timeout=dict(type='int', default=5),
             sending_delay=dict(type='float', default=-1.0),
