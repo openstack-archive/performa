@@ -78,7 +78,7 @@ depending on number of concurrent threads.
         y2: "$msg_received_per_sec"
         y3: "$msg_round_trip_per_sec"
         y4: { $multiply: [ "$latency", 1000 ] }
-        y5: { $multiply: [ { $sum: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
+        y5: { $multiply: [ { $add: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
 ''' | chart_and_table
 }}
 
@@ -215,7 +215,7 @@ depending on number of concurrent threads.
         y: "$msg_sent_per_sec"
         y2: "$msg_received_per_sec"
         y3: { $multiply: [ "$latency", 1000 ] }
-        y4: { $multiply: [ { $sum: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
+        y4: { $multiply: [ { $add: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
 ''' | chart_and_table
 }}
 
@@ -351,7 +351,7 @@ depending on number of concurrent threads.
         y: "$msg_sent_per_sec"
         y2: "$msg_received_per_sec"
         y3: { $multiply: [ "$latency", 1000 ] }
-        y4: { $multiply: [ { $sum: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
+        y4: { $multiply: [ { $add: ["$rabbit_total_0", "$rabbit_total_1", "$rabbit_total_2"] }, 100 ] }
 ''' | chart_and_table
 }}
 

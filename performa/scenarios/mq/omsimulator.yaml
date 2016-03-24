@@ -123,7 +123,7 @@ aggregation:
       values:
         pipeline:
         - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[1] }} }
-        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
+        - $group: { _id: null, rabbit_resident_1: { $avg: "$resident" } }
 {% endif %}
 
 {% if rabbit_hosts[2] %}
@@ -142,7 +142,7 @@ aggregation:
       values:
         pipeline:
         - $match: { task: atop, status: OK, label: PRM, name: { $regex: beam.* }, host: {{ rabbit_hosts[2] }} }
-        - $group: { _id: null, rabbit_resident_0: { $avg: "$resident" } }
+        - $group: { _id: null, rabbit_resident_2: { $avg: "$resident" } }
 {% endif %}
 
 report:
