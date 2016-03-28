@@ -49,33 +49,36 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: call
         duration: 100
+        threads: 10
         url: {{ rabbit_url }}
         client_url: {{ client_url }}
         server_url: {{ server_url }}
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: cast
         duration: 100
+        threads: 10
         url: {{ rabbit_url }}
         client_url: {{ client_url }}
         server_url: {{ server_url }}
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 1, 2, 5, 10, 20, 50 ]
+      processes: [ 1, 2, 5, 7, 10 ]
     tasks:
     - omsimulator:
         mode: notify
         duration: 100
+        threads: 10
         url: {{ rabbit_url }}
         client_url: {{ client_url }}
         server_url: {{ server_url }}
@@ -119,4 +122,4 @@ aggregation:
 {% endif %}
 
 report:
-  template: omsimulator.rst
+  template: rabbitmq.rst

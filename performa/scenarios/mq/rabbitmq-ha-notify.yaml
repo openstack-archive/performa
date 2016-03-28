@@ -5,7 +5,7 @@ description:
 
 parameters:
   tester_hosts: List of hosts were omsimulator will be executed
-  rabbit_url: RabbitMQ address used by both server and client
+  rabbit_url: RabbitMQ address
   client_url: Override RabbitMQ address for the client
   server_url: Override RabbitMQ address for the server
 
@@ -37,7 +37,7 @@ execution:
     hosts: {{ tester_hosts }}
     tasks:
     - omsimulator:
-        mode: call
+        mode: notify
         duration: 120
         threads: 1
         host_count: 1
@@ -46,4 +46,4 @@ execution:
         server_url: {{ server_url }}
 
 report:
-  template: omsimulator-ha-call.rst
+  template: rabbitmq-ha-notify.rst

@@ -37,7 +37,7 @@ execution:
     hosts: {{ tester_hosts }}
     tasks:
     - omsimulator:
-        mode: notify
+        mode: cast
         duration: 120
         threads: 1
         host_count: 1
@@ -46,4 +46,4 @@ execution:
         server_url: {{ server_url }}
 
 report:
-  template: omsimulator-ha-notify.rst
+  template: rabbitmq-ha-cast.rst

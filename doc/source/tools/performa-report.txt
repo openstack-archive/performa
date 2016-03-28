@@ -58,8 +58,9 @@ optional arguments:
                         User for connecting to remote systems, defaults to
                         env[PERFORMA_REMOTE_USER].
   --scenario SCENARIO   Scenario to play. Can be a file name or one of
-                        aliases: "db/sysbench", "mq/omsimulator". Defaults to
-                        env[PERFORMA_SCENARIO].
+                        aliases: "db/sysbench", "mq/rabbitmq-ha-call", "mq
+                        /rabbitmq-ha-cast", "mq/rabbitmq-ha-notify",
+                        "mq/rabbitmq". Defaults to env[PERFORMA_SCENARIO].
   --syslog-log-facility SYSLOG_LOG_FACILITY
                         Syslog facility to receive log lines. This option is
                         ignored if log_config_append is set.
