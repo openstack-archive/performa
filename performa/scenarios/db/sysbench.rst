@@ -1,55 +1,95 @@
 Sysbench Report
 ---------------
 
-This is the report of execution test plan
-:ref:`sql_db_test_plan` with `Sysbench`_ tool.
+This scenario is executed with `Sysbench`_ tool. There is one instance of
+tool per tester node, each running in N threads.
 
-Results
-^^^^^^^
+Throughput
+^^^^^^^^^^
 
-**Queries per second depending on threads count**
+The following chart shows the number of queries, read queries and transactions
+depending on total thread count.
 
 {{'''
-    title: Queries per second
+    title: Throughput
     axes:
       x: threads
-      y: queries per sec
+      y1: queries per sec
       y2: read queries per sec
+      y3: transactions per sec
     chart: line
     pipeline:
-    - $match: { task: sysbench_oltp, status: OK }
-    - $group: { _id: { threads: "$threads" },
-                queries_total_per_sec: { $avg: { $divide: ["$queries_total", "$duration"] }},
-                queries_read_per_sec: { $avg: { $divide: ["$queries_read", "$duration"] }}
-              }
+    - $match: { task: sysbench_oltp }
+    - $group:
+        _id: { threads: { $multiply: [ "$threads", "$host_count" ] } }
+        queries_total_per_sec: { $sum: { $divide: ["$queries_total", "$duration"] }}
+        queries_read_per_sec: { $sum: { $divide: ["$queries_read", "$duration"] }}
+        transactions_per_sec: { $sum: { $divide: ["$transactions", "$duration"] }}
     - $project:
         x: "$_id.threads"
-        y: "$queries_total_per_sec"
+        y1: "$queries_total_per_sec"
         y2: "$queries_read_per_sec"
+        y3: "$transactions_per_sec"
 ''' | chart_and_table
 }}
 
-**Queries per second and mysqld CPU consumption depending on threads count**
+
+Throughput and server CPU consumption
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following chart shows how DB server CPU consumption depends on number
+of concurrent threads and throughput.
 
 {{'''
-    title: Queries and and CPU util per second
+    title: CPU consumption
     axes:
       x: threads
-      y: queries per sec
-      y2: mysqld CPU consumption, %
+      y1: queries per sec
+      y2: CPU, %
     chart: line
     pipeline:
-    - $match: { task: sysbench_oltp, status: OK }
-    - $group: { _id: { threads: "$threads" },
-                queries_total_per_sec: { $avg: { $divide: ["$queries_total", "$duration"] }},
-                mysqld_total: { $avg: "$mysqld_total" }
-              }
+    - $match: { task: sysbench_oltp }
+    - $group:
+        _id: { threads: { $multiply: [ "$threads", "$host_count" ] } }
+        queries_total_per_sec: { $sum: { $divide: ["$queries_total", "$duration"] }}
+        mysqld_total: { $avg: "$mysqld_total" }
     - $project:
         x: "$_id.threads"
-        y: "$queries_total_per_sec"
+        y1: "$queries_total_per_sec"
         y2: { $multiply: [ "$mysqld_total", 100 ] }
 ''' | chart_and_table
 }}
+
+
+Operation latency
+^^^^^^^^^^^^^^^^^
+
+The following chart shows how operation latency depends on number of
+concurrent threads.
+
+{{'''
+    title: Latency
+    axes:
+      x: threads
+      y1: min latency, ms
+      y2: avg latency, ms
+      y3: max latency, ms
+    chart: line
+    pipeline:
+    - $match: { task: sysbench_oltp }
+    - $group:
+        _id: { threads: { $multiply: [ "$threads", "$host_count" ] } }
+        latency_min: { $min: "$latency_min" }
+        latency_avg: { $avg: "$latency_avg" }
+        latency_max: { $max: "$latency_max" }
+    - $project:
+        x: "$_id.threads"
+        y1: "$latency_min"
+        y2: "$latency_avg"
+        y3: "$latency_max"
+''' | chart_and_table
+}}
+
 
 .. references:
 

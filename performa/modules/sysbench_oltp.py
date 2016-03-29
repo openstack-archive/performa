@@ -10,12 +10,21 @@ TEST_STATS = re.compile(
     '\s+total:\s+(?P<queries_total>\d+).*\n',
     flags=re.MULTILINE | re.DOTALL
 )
+LATENCY_STATS = re.compile(
+    '\s+per-request statistics:\s*\n'
+    '\s+min:\s+(?P<latency_min>[\d\.]+)ms\s*\n'
+    '\s+avg:\s+(?P<latency_avg>[\d\.]+)ms\s*\n'
+    '\s+max:\s+(?P<latency_max>[\d\.]+)ms\s*\n'
+    '\s+approx.+:\s+(?P<latency_95p>[\d\.]+)ms\s*\n',
+    flags=re.MULTILINE | re.DOTALL
+)
 PATTERNS = [
     r'sysbench (?P<version>[\d\.]+)',
     TEST_STATS,
     r'\s+transactions:\s+(?P<transactions>\d+).*\n',
     r'\s+deadlocks:\s+(?P<deadlocks>\d+).*\n',
     r'\s+total time:\s+(?P<duration>[\d\.]+).*\n',
+    LATENCY_STATS,
 ]
 TRANSFORM_FIELDS = {
     'queries_read': int,
@@ -25,6 +34,10 @@ TRANSFORM_FIELDS = {
     'duration': float,
     'transactions': int,
     'deadlocks': int,
+    'latency_min': float,
+    'latency_avg': float,
+    'latency_max': float,
+    'latency_95p': float,
 }
 
 
@@ -49,6 +62,7 @@ def main():
             threads=dict(type='int', default=10),
             duration=dict(type='int', default=10),
             mysql_host=dict(default='localhost'),
+            mysql_port=dict(type='int', default=3306),
             mysql_db=dict(default='sbtest'),
             oltp_table_name=dict(default='sbtest'),
             oltp_table_size=dict(type='int', default=100000),
@@ -63,6 +77,7 @@ def main():
            '--max-time=%(duration)s '
            '--max-requests=0 '
            '--mysql-host=%(mysql_host)s '
+           '--mysql-port=%(mysql_port)s '
            '--mysql-db=%(mysql_db)s '
            '--oltp-table-name=%(oltp_table_name)s '
            '--oltp-table-size=%(oltp_table_size)s '

@@ -6,6 +6,8 @@ description:
 parameters:
   tester_hosts: List of hosts were omsimulator will be executed
   mysql_hosts: List of hosts were MySQL runs
+  mysql_endpoint: Address of MySQL endpoint
+  mysql_port: MySQL port number
 
 setup:
   -
@@ -30,11 +32,12 @@ execution:
   -
     hosts: {{ tester_hosts }}
     matrix:
-      threads: [ 10, 20, 50, 70, 100, 150, 200, 300 ]
+      threads: [ 5, 10, 15, 20, 30, 40, 50 ]
     tasks:
     - sysbench_oltp:
         duration: 60
-        mysql_host: localhost
+        mysql_host: {{ mysql_endpoint }}
+        mysql_port: {{ mysql_port }}
         mysql_db: sbtest
   -
     hosts: {{ mysql_hosts }}
@@ -51,7 +54,8 @@ aggregation:
       values:
         pipeline:
         - { $match: { task: atop, status: OK, label: PRC, name: mysqld }}
-        - { $group: { _id: null, mysqld_sys: { $avg: "$sys" }, mysqld_user: { $avg: "$user" }, mysqld_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
+        - { $group: { _id: "$host", mysqld_sys: { $avg: "$sys" }, mysqld_user: { $avg: "$user" }, mysqld_total: { $avg: { $add: [ "$sys", "$user" ] }} }}
+        - { $group: { _id: null, mysqld_sys: { $sum: "$mysqld_sys"}, mysqld_user: { $sum: "$mysqld_user" }, mysqld_total: { $sum: "$mysqld_total" }}}
 
 report:
   template: sysbench.rst

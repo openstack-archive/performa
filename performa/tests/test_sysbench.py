@@ -72,6 +72,10 @@ class TestSysbench(testtools.TestCase):
             'transactions': 665,
             'deadlocks': 0,
             'duration': 60.8074,
+            'latency_min': 876.31,
+            'latency_avg': 1816.63,
+            'latency_max': 3792.73,
+            'latency_95p': 2886.19,
         }
 
         self.assertEqual(expected, sysbench.parse_sysbench_oltp(OLTP_OUTPUT))
