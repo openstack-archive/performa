@@ -87,7 +87,9 @@ execution:
     tasks:
     - atop:
         command: stop
-        labels: [ PRC ]
+        filter:
+          name: beam.*
+          label: [ PRC ]
 
 aggregation:
   -

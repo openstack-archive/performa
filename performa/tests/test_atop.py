@@ -36,7 +36,8 @@ class TestAtop(testtools.TestCase):
                      'sys': 0.04, 'ticks_per_second': 100, 'time': '10:01:05',
                      'timestamp': 1456480865, 'user': 0.04, 'wait': 0.0}]
 
-        self.assertEqual(expected, atop.parse_output(_read_sample(), ['CPU']))
+        self.assertEqual(expected,
+                         atop.parse(_read_sample(), dict(label=['CPU'])))
 
     def test_parse_cpu(self):
         needle = {'cpu_id': 2, 'date': '2016/02/26', 'guest': 0.0,
@@ -45,7 +46,8 @@ class TestAtop(testtools.TestCase):
                   'sys': 0.03, 'ticks_per_second': 100, 'time': '10:01:05',
                   'timestamp': 1456480865, 'user': 0.03, 'wait': 0.0}
 
-        self.assertIn(needle, atop.parse_output(_read_sample(), ['cpu']))
+        self.assertIn(needle,
+                      atop.parse(_read_sample(), dict(label=['cpu'])))
 
     def test_parse_mem(self):
         expected = [
@@ -58,7 +60,8 @@ class TestAtop(testtools.TestCase):
              'label': 'MEM', 'page_size': 4096, 'phys': 8373075968,
              'slab': 298115072, 'time': '10:01:05', 'timestamp': 1456480865}]
 
-        self.assertEqual(expected, atop.parse_output(_read_sample(), ['MEM']))
+        self.assertEqual(expected,
+                         atop.parse(_read_sample(), dict(label=['MEM'])))
 
     def test_parse_net(self):
         needle = {'date': '2016/02/26', 'host': 'host', 'interval': 1,
@@ -66,7 +69,8 @@ class TestAtop(testtools.TestCase):
                   'label': 'NET', 'tcp_rx': 0, 'tcp_tx': 0, 'time': '10:01:04',
                   'timestamp': 1456480864, 'udp_rx': 0, 'udp_tx': 0}
 
-        self.assertIn(needle, atop.parse_output(_read_sample(), ['NET']))
+        self.assertIn(needle,
+                      atop.parse(_read_sample(), dict(label=['NET'])))
 
     def test_parse_prc(self):
         needle = {'current_cpu': 2, 'date': '2016/02/26', 'host': 'host',
@@ -76,7 +80,8 @@ class TestAtop(testtools.TestCase):
                   'sys': 0.02, 'ticks_per_second': 100, 'time': '10:01:04',
                   'timestamp': 1456480864, 'user': 0.01}
 
-        self.assertIn(needle, atop.parse_output(_read_sample(), ['PRC']))
+        self.assertIn(needle,
+                      atop.parse(_read_sample(), dict(label=['PRC'])))
 
     def test_parse_prm(self):
         needle = {'date': '2016/02/26', 'host': 'host', 'interval': 1,
@@ -87,4 +92,28 @@ class TestAtop(testtools.TestCase):
                   'timestamp': 1456480865, 'virtual': 17412096,
                   'virtual_growth': 0}
 
-        self.assertIn(needle, atop.parse_output(_read_sample(), ['PRM']))
+        self.assertIn(needle,
+                      atop.parse(_read_sample(), dict(label=['PRM'])))
+
+    def test_parse_match_name_regex(self):
+        expected = [{'current_cpu': 2, 'date': '2016/02/26', 'host': 'host',
+                     'interval': 1, 'label': 'PRC', 'name': 'dstat', 'nice': 0,
+                     'pid': 11014, 'priority': 120, 'realtime_priority': 0,
+                     'scheduling_policy': 0, 'sleep_avg': 0, 'state': 'S',
+                     'sys': 0.02, 'ticks_per_second': 100, 'time': '10:01:04',
+                     'timestamp': 1456480864, 'user': 0.01},
+                    {'current_cpu': 2, 'date': '2016/02/26', 'host': 'host',
+                     'interval': 1, 'label': 'PRC', 'name': 'dstat', 'nice': 0,
+                     'pid': 11014, 'priority': 120, 'realtime_priority': 0,
+                     'scheduling_policy': 0, 'sleep_avg': 0, 'state': 'S',
+                     'sys': 0.0, 'ticks_per_second': 100, 'time': '10:01:05',
+                     'timestamp': 1456480865, 'user': 0.02}]
+
+        filter = {
+            'name': 'dstat',
+            'label': ['PRC'],
+        }
+        self.assertEqual(expected, atop.parse(_read_sample(), filter))
+
+    def test_parse_no_filter(self):
+        self.assertEqual(43, len(atop.parse(_read_sample(), {})))

@@ -35,7 +35,7 @@ execution:
       threads: [ 5, 10, 15, 20, 30, 40, 50 ]
     tasks:
     - sysbench_oltp:
-        duration: 60
+        duration: 10
         mysql_host: {{ mysql_endpoint }}
         mysql_port: {{ mysql_port }}
         mysql_db: sbtest
@@ -44,7 +44,9 @@ execution:
     tasks:
     - atop:
         command: stop
-        labels: [ PRC ]
+        filter:
+          name: mysqld
+          label: [ PRC ]
 
 aggregation:
   -
