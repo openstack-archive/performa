@@ -87,6 +87,8 @@ def play_execution(runner, execution_playbook):
                             rec.update(common)
                             series.append(rec)
                             LOG.debug('New time series: %s', rec)
+                else:
+                    LOG.warning('Play failed: %s', command_result)
 
     return records, series
 

@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import functools
 import os
 import re
 import tempfile
@@ -145,10 +146,7 @@ def normalize_point(point):
     return point
 
 
-def parse_output(raw, filter_labels):
-    filter_labels = set(filter_labels)
-    series = []
-
+def parse_output(raw):
     active = False
     for line in raw.split('\n'):
         if line == 'SEP':
@@ -162,11 +160,44 @@ def parse_output(raw, filter_labels):
             m = re.match(pattern, line)
             if m:
                 point = m.groupdict()
-                if point['label'] in filter_labels:
-                    series.append(normalize_point(point))
+                yield normalize_point(point)
                 break
 
-    return series
+
+def make_filter_funcs(filters):
+    def _in_list(point, name, lst):
+        return point.get(name) in lst
+
+    def _match(point, name, patt):
+        return re.match(patt, point.get(name, ''))
+
+    funcs = []
+    for name, values in filters.items():
+        fn = None
+        if isinstance(values, list):
+            fn = functools.partial(_in_list, name=name, lst=set(values))
+        elif isinstance(values, str):
+            fn = functools.partial(_match, name=name, patt=re.compile(values))
+        if fn:
+            funcs.append(fn)
+    return funcs
+
+
+def run_filter_funcs(points, funcs):
+    for point in points:
+        accepted = True
+        for fn in funcs:
+            if not fn(point):
+                accepted = False
+                break
+
+        if accepted:
+            yield point
+
+
+def parse(raw, filters):
+    funcs = make_filter_funcs(filters)
+    return list(run_filter_funcs(parse_output(raw), funcs))
 
 
 def start(module):
@@ -206,13 +237,17 @@ def stop(module):
 
     # grab data
     labels = module.params['labels'] or ALL_LABELS
+    ft = module.params.get('filter')
+    if ft and 'label' in ft:
+        labels = ft['label']
+
     cmd = ('atop -r %(file)s -P %(labels)s' %
            dict(file=ATOP_FILE_NAME, labels=','.join(labels)))
 
     rc, stdout, stderr = module.run_command(cmd)
 
     try:
-        series = parse_output(stdout, labels)
+        series = parse(stdout, module.params.get('filter', {}))
         module.exit_json(series=series)
     except Exception as e:
         module.fail_json(msg=str(e), stderr=stderr, rc=rc)
@@ -224,6 +259,7 @@ def main():
             command=dict(required=True, choices=['start', 'stop']),
             interval=dict(type='int', default=1),
             labels=dict(type='list'),
+            filter=dict(type='dict', default={}),
         ))
 
     command = module.params['command']
