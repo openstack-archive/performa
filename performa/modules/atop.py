@@ -206,7 +206,7 @@ def start(module):
     module.run_command(cmd)
 
     # start atop as daemon
-    cmd = ('daemon -n %(name)s -- atop -w %(file)s %(interval)s' %
+    cmd = ('daemon -n %(name)s -U -- atop -w %(file)s %(interval)s' %
            dict(name=UNIQUE_NAME, file=ATOP_FILE_NAME,
                 interval=module.params['interval']))
 
@@ -228,7 +228,7 @@ def start(module):
 
 def stop(module):
     # stop atop
-    cmd = 'daemon -n %(name)s --stop' % dict(name=UNIQUE_NAME)
+    cmd = 'daemon -n %(name)s -U --stop' % dict(name=UNIQUE_NAME)
 
     rc, stdout, stderr = module.run_command(cmd)
 
