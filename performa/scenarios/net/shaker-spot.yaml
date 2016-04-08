@@ -1,0 +1,58 @@
+title: Shaker Spot
+
+description:
+  This scenario runs shaker-spot on remote machine
+
+parameters:
+  tester_hosts: List of hosts were shaker-spot is executed
+  target_hosts: List of target hosts
+
+setup:
+  -
+    hosts: {{ tester_hosts }}
+    tasks:
+    - apt: name=netperf
+      become: yes
+    - apt: name=python-dev
+      become: yes
+    - apt: name=python-pip
+      become: yes
+    - apt_key: url=https://ftp-master.debian.org/keys/archive-key-8.asc state=present
+      become: yes
+    - apt_repository: repo='deb http://ftp.debian.org/debian/ jessie main' state=present validate_certs=false update_cache=yes
+      become: yes
+    - apt: name=iperf3 force=yes
+      become: yes
+    - apt_repository: repo='deb http://ftp.debian.org/debian/ jessie main' state=absent
+      become: yes
+    - pip: name=virtualenv
+      become: yes
+    - pip: name=flent
+      become: yes
+    - pip: name=pyshaker virtualenv=/tmp/performa/shaker.venv
+  -
+    hosts: {{ target_hosts }}
+    tasks:
+    - apt: name=netperf
+      become: yes
+    - apt: name=atop
+      become: yes
+    - apt: name=daemon
+      become: yes
+
+execution:
+  -
+    hosts: {{ tester_hosts }}
+    tasks:
+    - shaker_spot:
+        scenario: spot/ping
+        targets: {{ target_hosts }}
+    - shaker_spot:
+        scenario: spot/tcp
+        targets: {{ target_hosts }}
+    - shaker_spot:
+        scenario: spot/udp
+        targets: {{ target_hosts }}
+
+report:
+  template: shaker-spot.rst

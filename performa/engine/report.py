@@ -16,6 +16,7 @@
 import collections
 import errno
 import functools
+import numbers
 import os
 import tempfile
 
@@ -62,7 +63,7 @@ def generate_chart(chart_str, db, doc_folder, tag,
         data = collection.aggregate(pl)
 
         for rec in data:
-            if do_round:
+            if do_round and isinstance(rec['x'], numbers.Number):
                 x = int(round(rec['x']))
             else:
                 x = rec['x']
@@ -99,23 +100,23 @@ def generate_chart(chart_str, db, doc_folder, tag,
                   '\n'.join(values) +
                   '\n')
 
-    xy_chart = pygal.XY(style=style.RedBlueStyle,
-                        fill=fill,
-                        legend_at_bottom=True,
-                        include_x_axis=True,
-                        x_title=axes['x'])
-
     LOG.debug('Lines: %s', lines)
-
-    for k in y_keys:
-        xy_chart.add(axes[k], lines[k])
-
-    chart_filename = utils.strict(title)
-    abs_chart_filename = '%s.svg' % os.path.join(doc_folder, chart_filename)
-    xy_chart.render_to_file(abs_chart_filename)
 
     doc = ''
     if show_chart:
+        xy_chart = pygal.XY(style=style.RedBlueStyle,
+                            fill=fill,
+                            legend_at_bottom=True,
+                            include_x_axis=True,
+                            x_title=axes['x'])
+
+        for k in y_keys:
+            xy_chart.add(axes[k], lines[k])
+
+        chart_filename = utils.strict(title)
+        abs_chart_filename = '%s.svg' % os.path.join(doc_folder, chart_filename)
+        xy_chart.render_to_file(abs_chart_filename)
+
         doc += '.. image:: %s.*\n\n' % chart_filename
 
     if show_table:
