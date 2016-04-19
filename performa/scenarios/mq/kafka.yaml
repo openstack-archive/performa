@@ -1,0 +1,52 @@
+title: Oslo.messaging notifications with Kafka driver
+
+description:
+  This scenario oslo.messaging is tested with Kafka driver
+
+parameters:
+  tester_hosts: List of hosts were omsimulator will be executed
+  kafka_url: Kafka address
+  client_url: Override Kafka address for the client
+  server_url: Override Kafka address for the server
+
+setup:
+  -
+    hosts: {{ tester_hosts }}
+    tasks:
+    - apt: name=git
+      become: yes
+    - name: installing omsimulator
+      git: repo=git://git.openstack.org/openstack/oslo.messaging
+           dest=/tmp/performa/oslo.messaging
+    - apt: name=python-dev
+      become: yes
+    - apt: name=python-pip
+      become: yes
+    - pip: name=virtualenv
+      become: yes
+    - pip: requirements=/tmp/performa/oslo.messaging/requirements.txt virtualenv=/tmp/performa/oslo.messaging/.venv
+    - pip: name=eventlet virtualenv=/tmp/performa/oslo.messaging/.venv
+    - pip: name="kafka-python<1.0.0,>=0.9.5" virtualenv=/tmp/performa/oslo.messaging/.venv
+    - command: /tmp/performa/oslo.messaging/.venv/bin/python setup.py install
+      args:
+        chdir: /tmp/performa/oslo.messaging
+
+
+execution:
+  -
+    hosts: {{ tester_hosts }}
+    matrix:
+      processes: [ 1, 2, 3, 4, 5, 6 ]
+    tasks:
+    - omsimulator:
+        mode: notify
+        duration: 100
+        threads: 10
+        url: {{ kafka_url }}
+        client_url: {{ client_url }}
+        server_url: {{ server_url }}
+        unique_topic_per_pair: yes
+
+
+report:
+  template: kafka.rst
