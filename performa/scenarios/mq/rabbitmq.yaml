@@ -58,6 +58,7 @@ execution:
         url: {{ rabbit_url }}
         client_url: {{ client_url }}
         server_url: {{ server_url }}
+        topic: profiler_topic
   -
     hosts: {{ tester_hosts }}
     matrix:
@@ -70,6 +71,7 @@ execution:
         url: {{ rabbit_url }}
         client_url: {{ client_url }}
         server_url: {{ server_url }}
+        topic: profiler_topic
   -
     hosts: {{ tester_hosts }}
     matrix:
