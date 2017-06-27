@@ -18,10 +18,10 @@ import itertools
 import logging as std_logging
 import os
 import random
-import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 import re
 import six
 import yaml
@@ -156,7 +156,7 @@ def random_string(length=6):
 
 
 def make_id():
-    return str(uuid.uuid4())
+    return uuidutils.generate_uuid()
 
 
 def make_help_options(message, base, type_filter=None):
