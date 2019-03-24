@@ -16,7 +16,7 @@ setup:
     - apt: name=git
       become: yes
     - name: installing omsimulator
-      git: repo=git://git.openstack.org/openstack/oslo.messaging
+      git: repo=https://git.openstack.org/openstack/oslo.messaging
            dest=/tmp/performa/oslo.messaging
     - apt: name=python-dev
       become: yes
