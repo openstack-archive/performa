@@ -1,7 +1,0 @@
-[run]
-branch = True
-source = performa
-omit = performa/openstack/*
-
-[report]
-ignore_errors = True
